@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import buildDailyPerformance from "@/lib/utils/dailyPerformance";
 import {
   Line,
   LineChart,
@@ -130,119 +131,56 @@ export default function AccountAnalysisModal({ account, isOpen, onClose }) {
     });
   }, [account?.media, sortBy]);
 
-  const dailyPerformance = useMemo(() => {
-    const media = account?.media || [];
+  const dailyPerformance = useMemo(
+    () => buildDailyPerformance(account?.media || []),
+    [account?.media]
+  );
 
-    if (!media.length) {
-      return { groups: [], totalsSeries: [] };
+  const dailyGroups = dailyPerformance.groups || [];
+  const dailyTrendSeries = dailyPerformance.trendSeries || [];
+
+  function DailyTrendTooltip({ active, payload, label }) {
+    if (!active || !payload?.length) {
+      return null;
     }
 
-    const groupsByDate = new Map();
+    const data = payload[0]?.payload || {};
+    const delta = Number.isFinite(data.viewsDelta) ? data.viewsDelta : null;
+    const deltaPct = Number.isFinite(data.viewsDeltaPct) ? data.viewsDeltaPct : null;
+    const share = Number.isFinite(data.topDriverShare) ? data.topDriverShare : null;
 
-    for (const item of media) {
-      if (!item?.publishedAt) {
-        continue;
-      }
-
-      const parsedDate = new Date(item.publishedAt);
-      if (Number.isNaN(parsedDate.getTime())) {
-        continue;
-      }
-
-      const dateKey = parsedDate.toISOString().split("T")[0];
-      if (!groupsByDate.has(dateKey)) {
-        groupsByDate.set(dateKey, {
-          date: dateKey,
-          posts: [],
-          totals: {
-            views: 0,
-            likes: 0,
-            comments: 0,
-            shares: 0,
-            saves: 0,
-            engagementRateTotal: 0,
-          },
-        });
-      }
-
-      const entry = groupsByDate.get(dateKey);
-      const metrics = {
-        views: item.metrics?.views || 0,
-        likes: item.metrics?.likes || 0,
-        comments: item.metrics?.comments || 0,
-        shares: item.metrics?.shares || 0,
-        saves: item.metrics?.saves || 0,
-        engagementRate: item.metrics?.engagementRate || 0,
-      };
-
-      entry.posts.push({
-        id: item._id || item.externalId,
-        externalId: item.externalId,
-        title: item.title,
-        url: item.url,
-        thumbnailUrl: item.thumbnailUrl,
-        publishedAt: item.publishedAt,
-        metrics,
-      });
-
-      entry.totals.views += metrics.views;
-      entry.totals.likes += metrics.likes;
-      entry.totals.comments += metrics.comments;
-      entry.totals.shares += metrics.shares;
-      entry.totals.saves += metrics.saves;
-      entry.totals.engagementRateTotal += metrics.engagementRate;
-    }
-
-    const groups = Array.from(groupsByDate.values())
-      .map((group) => {
-        const posts = group.posts
-          .slice()
-          .sort((a, b) => (b.metrics?.views || 0) - (a.metrics?.views || 0))
-          .map((post, index) => {
-            const viewShare = group.totals.views
-              ? Number((((post.metrics?.views || 0) / group.totals.views) * 100).toFixed(2))
-              : 0;
-
-            return {
-              ...post,
-              rank: index + 1,
-              viewShare,
-            };
-          });
-
-        const averageEngagement = posts.length
-          ? Number((group.totals.engagementRateTotal / posts.length).toFixed(2))
-          : 0;
-
-        return {
-          date: group.date,
-          posts,
-          totals: {
-            views: group.totals.views,
-            likes: group.totals.likes,
-            comments: group.totals.comments,
-            shares: group.totals.shares,
-            saves: group.totals.saves,
-            averageEngagement,
-            postCount: posts.length,
-          },
-          topPost: posts[0] || null,
-        };
-      })
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    const totalsSeries = groups.map((group) => ({
-      date: group.date,
-      views: group.totals.views,
-      likes: group.totals.likes,
-      comments: group.totals.comments,
-      shares: group.totals.shares,
-      saves: group.totals.saves,
-      postCount: group.totals.postCount,
-    }));
-
-    return { groups, totalsSeries };
-  }, [account?.media]);
+    return (
+      <div className="rounded-lg border border-slate-700 bg-slate-900/90 p-3 text-xs text-slate-300 shadow-xl">
+        <div className="font-semibold text-white">{formatDate(label)}</div>
+        <div className="mt-1 text-sm text-white">{formatNumber(data.views)} views</div>
+        {delta !== null ? (
+          <div
+            className={`mt-1 text-[11px] ${
+              delta >= 0 ? "text-emerald-400" : "text-rose-400"
+            }`}
+          >
+            {delta >= 0 ? "+" : "-"}
+            {formatNumber(Math.abs(delta))}
+            {deltaPct !== null ? (
+              <>
+                {" "}({deltaPct >= 0 ? "+" : "-"}
+                {Math.abs(deltaPct).toFixed(1)}%)
+              </>
+            ) : null}
+            <span className="ml-1 text-slate-500">vs previous day</span>
+          </div>
+        ) : null}
+        {data.topDriverTitle ? (
+          <div className="mt-2 text-[11px] leading-snug text-slate-300">
+            Top driver: <span className="text-white">{data.topDriverTitle}</span>
+            {share !== null ? (
+              <span className="text-slate-400"> ({share.toFixed(1)}% of daily views)</span>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   if (!isOpen || !account) return null;
 
@@ -587,8 +525,54 @@ export default function AccountAnalysisModal({ account, isOpen, onClose }) {
                   </p>
                 </div>
 
-                {dailyPerformance.groups.length ? (
+                {dailyGroups.length ? (
                   <div className="space-y-6">
+                    {dailyTrendSeries.length ? (
+                      <div className="rounded-lg border border-slate-800 bg-slate-900/50 overflow-hidden">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+                          <div>
+                            <h4 className="text-sm font-semibold text-slate-200">Daily Views Trend</h4>
+                            <p className="text-xs text-slate-400">
+                              Track total views per day and highlight the post that drove performance.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={dailyTrendSeries}>
+                              <defs>
+                                <linearGradient id="dailyViewsGradient" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.35} />
+                                  <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid stroke="#1f2937" strokeDasharray="4 4" />
+                              <XAxis
+                                dataKey="date"
+                                stroke="#94a3b8"
+                                tickFormatter={(value) =>
+                                  new Date(value).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                  })
+                                }
+                              />
+                              <YAxis stroke="#94a3b8" tickFormatter={(value) => formatNumber(value)} />
+                              <Tooltip content={<DailyTrendTooltip />} />
+                              <Area
+                                type="monotone"
+                                dataKey="views"
+                                stroke="#38bdf8"
+                                strokeWidth={2}
+                                fill="url(#dailyViewsGradient)"
+                                name="Views"
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div className="rounded-lg border border-slate-800 bg-slate-900/50 overflow-hidden">
                       <div className="px-4 py-3 border-b border-slate-800">
                         <h4 className="text-sm font-semibold text-slate-200">Daily Totals</h4>
@@ -605,11 +589,11 @@ export default function AccountAnalysisModal({ account, isOpen, onClose }) {
                               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Comments</th>
                               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Shares</th>
                               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Avg Engagement</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Top Post</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Top Driver</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-800">
-                            {dailyPerformance.groups.map((group) => (
+                            {dailyGroups.map((group) => (
                               <tr key={group.date} className="hover:bg-slate-900/60">
                                 <td className="px-4 py-3 text-sm text-slate-200">{formatDate(group.date)}</td>
                                 <td className="px-4 py-3 text-sm text-slate-200">{group.totals.postCount}</td>
@@ -622,7 +606,11 @@ export default function AccountAnalysisModal({ account, isOpen, onClose }) {
                                   {group.topPost ? (
                                     <div className="flex flex-col">
                                       <span className="font-medium text-white truncate max-w-[240px]">{group.topPost.title || group.topPost.externalId || "Untitled"}</span>
-                                      <span className="text-xs text-slate-400">{formatNumber(group.topPost.metrics?.views)} views</span>
+                                      <span className="text-xs text-slate-400">
+                                        {formatNumber(group.topPost.metrics?.views)} views • {Number.isFinite(group.topPost.viewShare)
+                                          ? `${group.topPost.viewShare.toFixed(1)}%`
+                                          : "0%"} of the day
+                                      </span>
                                     </div>
                                   ) : (
                                     <span className="text-slate-500">—</span>
@@ -636,7 +624,7 @@ export default function AccountAnalysisModal({ account, isOpen, onClose }) {
                     </div>
 
                     <div className="space-y-5">
-                      {dailyPerformance.groups.map((group) => (
+                      {dailyGroups.map((group) => (
                         <div key={group.date} className="rounded-xl border border-slate-800 bg-slate-900/40">
                           <div className="flex flex-col gap-3 border-b border-slate-800 px-4 py-4 md:flex-row md:items-center md:justify-between">
                             <div>
@@ -666,6 +654,31 @@ export default function AccountAnalysisModal({ account, isOpen, onClose }) {
                               </div>
                             </div>
                           </div>
+
+                          {group.topPost ? (
+                            <div className="flex flex-col gap-2 border-b border-slate-800/80 bg-sky-900/10 px-4 py-3 text-xs text-sky-100 md:flex-row md:items-center md:justify-between">
+                              <div>
+                                <span className="font-semibold text-sky-200">Top driver:</span>{" "}
+                                <span className="text-sky-100">{group.topPost.title || group.topPost.externalId || "Untitled"}</span>
+                                <span className="text-slate-400">
+                                  {" "}• {formatNumber(group.topPost.metrics?.views)} views
+                                  {Number.isFinite(group.topPost.viewShare)
+                                    ? ` (${group.topPost.viewShare.toFixed(1)}% of the day)`
+                                    : ""}
+                                </span>
+                              </div>
+                              {group.topPost.url ? (
+                                <a
+                                  href={group.topPost.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-xs font-medium text-sky-300 hover:text-sky-200"
+                                >
+                                  View post
+                                </a>
+                              ) : null}
+                            </div>
+                          ) : null}
 
                           <div className="space-y-3 p-4">
                             {group.posts.map((post) => (

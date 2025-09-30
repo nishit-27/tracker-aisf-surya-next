@@ -57,7 +57,7 @@ app/
 components/dashboard/ → Reusable dashboard widgets and Recharts wrappers
 lib/
   models/             → Mongoose schemas for users, platform accounts, and media items
-  platforms/          → Integration stubs (swap with real RapidAPI / YouTube calls)
+  platforms/          → Integration clients (RapidAPI + YouTube Data API)
   services/           → Sync service that upserts data + overview aggregations
   jobs/               → Helper to trigger sync for all platforms
   queries.js          → Shared data loader used by pages and API routes
@@ -78,7 +78,7 @@ lib/
      });
      ```
    - Map the API response fields to the `{ account, media }` structure expected by `upsertPlatformData`.
-3. **YouTube Data API** – update `lib/platforms/youtube.js` to call the official API using the `YOUTUBE_API_KEY` and `YOUTUBE_CHANNEL_ID`.
+3. **YouTube Data API** – set `YOUTUBE_API_KEY`; the provider resolves handles to channel IDs, fetches uploads, and stores the ID for efficient refreshes.
 4. **Authentication** – if the upstream API requires OAuth (e.g., Instagram Graph API), store any tokens or secrets in the environment and inject them into the provider modules above.
 
 ### Onboarding a new Instagram account
@@ -101,7 +101,7 @@ lib/
 | --- | --- | --- |
 | `POST` | `/api/sync/[platform]` | Fetches data for a single platform (`instagram`, `tiktok`, or `youtube`) and upserts into MongoDB. |
 | `GET` | `/api/sync/[platform]` | Returns the most recent account + media records for the platform. |
-| `POST` | `/api/accounts` | Detects the platform based on a profile URL, resolves identifiers, and ingests the account (currently Instagram only). |
+| `POST` | `/api/accounts` | Detects the platform (`instagram`, `tiktok`, `youtube`) from a profile URL, resolves identifiers, and ingests the account. |
 | `POST` | `/api/sync-all` | Triggers ingestion for every supported platform. Protect with the optional bearer token. |
 | `GET` | `/api/analytics/overview` | Aggregated totals across platforms. |
 | `GET` | `/api/analytics/platform/[platform]` | Aggregated analytics for a single platform. |

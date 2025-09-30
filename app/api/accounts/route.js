@@ -12,12 +12,29 @@ import {
   fetchTikTokData,
   isTikTokConfigured,
 } from "@/lib/platforms/tiktok";
+import {
+  extractYouTubeIdentifierFromUrl,
+  fetchYouTubeData,
+  isYouTubeConfigured,
+} from "@/lib/platforms/youtube";
 import { connectToDatabase } from "@/lib/mongodb";
 import PlatformAccount from "@/lib/models/PlatformAccount";
 import MediaItem from "@/lib/models/MediaItem";
 import { upsertPlatformData } from "@/lib/services/syncService";
 
 export const dynamic = "force-dynamic";
+
+function normalizeMetadataMap(metadata) {
+  if (!metadata) {
+    return {};
+  }
+
+  if (metadata instanceof Map) {
+    return Object.fromEntries(metadata.entries());
+  }
+
+  return metadata;
+}
 
 export async function GET() {
   try {
@@ -248,6 +265,161 @@ async function handleTikTokAccount({ accountUrl, userId: requestUserId }) {
   });
 }
 
+async function handleYouTubeAccount({ accountUrl, userId: requestUserId }) {
+  if (!isYouTubeConfigured()) {
+    return NextResponse.json(
+      {
+        error: "YouTube Data API credentials are missing. Set YOUTUBE_API_KEY in your environment.",
+      },
+      { status: 501 }
+    );
+  }
+
+  const extraction = extractYouTubeIdentifierFromUrl(accountUrl) ?? {};
+  const identifierFromUrl = extraction.identifier ?? null;
+  const channelIdFromUrl = extraction.channelId ?? null;
+  const handleFromUrl = extraction.handle ?? null;
+
+  if (!identifierFromUrl && !channelIdFromUrl) {
+    return NextResponse.json(
+      { error: "Unable to extract YouTube channel information from the provided URL." },
+      { status: 400 }
+    );
+  }
+
+  await connectToDatabase();
+
+  const candidateValues = new Set();
+  if (channelIdFromUrl) {
+    candidateValues.add(channelIdFromUrl);
+  }
+  if (identifierFromUrl) {
+    candidateValues.add(identifierFromUrl);
+    const withoutAt = identifierFromUrl.startsWith("@")
+      ? identifierFromUrl.slice(1)
+      : identifierFromUrl;
+    candidateValues.add(withoutAt);
+    candidateValues.add(`@${withoutAt}`);
+  }
+  if (handleFromUrl) {
+    candidateValues.add(handleFromUrl);
+  }
+
+  const seenConditions = new Set();
+  const orConditions = [];
+
+  function pushCondition(field, rawValue) {
+    if (rawValue === undefined || rawValue === null) {
+      return;
+    }
+
+    const stringValue = String(rawValue).trim();
+    if (!stringValue) {
+      return;
+    }
+
+    const dedupeKey = `${field}:${stringValue.toLowerCase()}`;
+    if (seenConditions.has(dedupeKey)) {
+      return;
+    }
+
+    seenConditions.add(dedupeKey);
+    orConditions.push({ [field]: stringValue });
+  }
+
+  for (const value of candidateValues) {
+    pushCondition("accountId", value);
+    pushCondition("username", value);
+    pushCondition("username", String(value).toLowerCase());
+    pushCondition("metadata.channelId", value);
+    pushCondition("metadata.handle", value);
+    pushCondition("metadata.handle", String(value).toLowerCase());
+  }
+
+  if (accountUrl) {
+    pushCondition("profileUrl", accountUrl);
+  }
+
+  let existingAccount = null;
+  if (orConditions.length) {
+    existingAccount = await PlatformAccount.findOne({
+      platform: "youtube",
+      $or: orConditions,
+    }).lean();
+  }
+
+  const existingMetadata = normalizeMetadataMap(existingAccount?.metadata);
+
+  let providerData;
+  try {
+    providerData = await fetchYouTubeData({
+      channelId:
+        existingMetadata?.channelId || existingAccount?.accountId || channelIdFromUrl || null,
+      identifier:
+        identifierFromUrl ||
+        existingMetadata?.identifierUsed ||
+        existingAccount?.username ||
+        null,
+      handle:
+        handleFromUrl ||
+        existingMetadata?.handle ||
+        existingAccount?.username ||
+        null,
+      url: accountUrl,
+      useMockOnError: false,
+    });
+  } catch (error) {
+    if (error?.message) {
+      throw error;
+    }
+    throw new Error("Failed to fetch YouTube media.");
+  }
+
+  const resolvedChannelId = providerData?.account?.accountId;
+
+  if (!resolvedChannelId) {
+    throw new Error("YouTube provider did not return a channel identifier.");
+  }
+
+  const metadata = {
+    ...(providerData.account?.metadata ?? {}),
+    channelId: resolvedChannelId,
+    handle: providerData.account?.username ?? handleFromUrl ?? identifierFromUrl ?? null,
+    sourceUrl: accountUrl,
+  };
+
+  const accountPayload = {
+    ...providerData.account,
+    accountId: resolvedChannelId,
+    username:
+      providerData.account.username ||
+      handleFromUrl ||
+      identifierFromUrl ||
+      resolvedChannelId,
+    profileUrl: providerData.account.profileUrl ?? accountUrl,
+    metadata,
+  };
+
+  const { platformAccount } = await upsertPlatformData({
+    userId: requestUserId ?? existingAccount?.user ?? null,
+    platform: "youtube",
+    account: accountPayload,
+    media: providerData.media,
+  });
+
+  const populatedAccount = await PlatformAccount.findById(platformAccount._id).lean();
+  const mediaItems = await MediaItem.find({ account: platformAccount._id })
+    .sort({ publishedAt: -1 })
+    .lean();
+
+  return NextResponse.json({
+    success: true,
+    platform: "youtube",
+    account: populatedAccount,
+    media: mediaItems,
+  });
+}
+
 export async function POST(request) {
   try {
     const body = await request.json().catch(() => null);
@@ -272,14 +444,20 @@ export async function POST(request) {
 
     if (platform === "instagram") {
       return await handleInstagramAccount({ accountUrl, userId });
-    } else if (platform === "tiktok") {
-      return await handleTikTokAccount({ accountUrl, userId });
-    } else {
-      return NextResponse.json(
-        { error: `Platform '${platform}' is not yet supported for onboarding.` },
-        { status: 501 }
-      );
     }
+
+    if (platform === "tiktok") {
+      return await handleTikTokAccount({ accountUrl, userId });
+    }
+
+    if (platform === "youtube") {
+      return await handleYouTubeAccount({ accountUrl, userId });
+    }
+
+    return NextResponse.json(
+      { error: `Platform '${platform}' is not yet supported for onboarding.` },
+      { status: 501 }
+    );
   } catch (error) {
     console.error("[accounts:create]", error);
     const status =

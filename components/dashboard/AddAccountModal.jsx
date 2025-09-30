@@ -61,7 +61,7 @@ export default function AddAccountModal({ open, onClose, onAccountAdded }) {
           <div>
             <h2 className="text-xl font-semibold text-white">Add Social Account</h2>
             <p className="mt-1 text-sm text-slate-400">
-              Paste the public profile URL. Instagram and TikTok are supported right now—YouTube support is on the roadmap.
+              Paste the public profile URL. Instagram, TikTok, and YouTube are supported right now.
             </p>
           </div>
           <button
@@ -80,7 +80,7 @@ export default function AddAccountModal({ open, onClose, onAccountAdded }) {
               type="url"
               value={url}
               onChange={(event) => setUrl(event.target.value)}
-              placeholder="https://www.instagram.com/creator/"
+              placeholder="https://www.youtube.com/@creator"
               className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               required
             />
