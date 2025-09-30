@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Social Media Engagement Tracker
 
-## Getting Started
+Full-stack Next.js dashboard that unifies Instagram, TikTok, and YouTube engagement insights. The app fetches metrics via RapidAPI and the YouTube Data API, stores results in MongoDB, and visualises performance with Tailwind CSS and Recharts.
 
-First, run the development server:
+> **Quick start:** The UI ships with rich mock data so you can explore the dashboard immediately. Configure the environment variables in `.env.local` when you are ready to connect real APIs and MongoDB.
+
+## Features
+
+- Cross-platform overview with total followers, views, and engagement rate
+- Platform-level comparisons and historical engagement trends
+- Detailed media table with filtering, sorting, and deep links to each post
+- Add unlimited accounts straight from the dashboard UI with an auto-detecting onboarding modal
+- Account-level filters that let you drill into a single profile or compare platform rollups
+- Next.js API routes to ingest data per platform, onboard new accounts from profile URLs, and a unified `/api/sync-all` endpoint for scheduled refreshes
+- MongoDB + Mongoose schemas that persist accounts, media items, and historical snapshots
+- Tailwind CSS 4 design system and Recharts visualisations
+
+## Local Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Without any environment variables, the dashboard falls back to deterministic mock data sourced from the provider stubs in `lib/platforms`. This lets you iterate on the UI before wiring up live APIs.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Copy `.env.example` to `.env.local` and populate the values that apply to your setup:
 
-## Learn More
+```bash
+cp .env.example .env.local
+```
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | Purpose |
+| --- | --- |
+| `MONGODB_URI` | Connection string for your MongoDB Atlas cluster or self-hosted Mongo instance. |
+| `RAPIDAPI_KEY` | Shared RapidAPI key used for both Instagram and TikTok endpoints. |
+| `RAPIDAPI_HOST_INSTAGRAM` | Host name for the Instagram RapidAPI endpoint (e.g. `instagram-looter2.p.rapidapi.com`). |
+| `RAPIDAPI_HOST_TIKTOK` | Host name for the TikTok RapidAPI endpoint (e.g. `tiktok-api23.p.rapidapi.com`). |
+| `INSTAGRAM_USER_ID` | The Instagram Business/Creator account identifier you want to track. |
+| `TIKTOK_USER_ID` | TikTok account identifier to hydrate requests. |
+| `YOUTUBE_API_KEY` | YouTube Data API v3 key. |
+| `YOUTUBE_CHANNEL_ID` | Channel ID used when fetching channel statistics and videos. |
+| `SYNC_WEBHOOK_SECRET` | Optional bearer token to protect the `/api/sync-all` cron endpoint. |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Directory Overview
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+app/
+  api/
+    analytics/        → Overview + platform-specific analytics routes
+    media/            → Filterable media listing API
+    sync/             → Platform-specific ingestion routes (Instagram/TikTok/YouTube)
+    sync-all/         → Unified ingestion entry point for cron jobs
+  page.js             → Loads analytics server-side and renders the dashboard UI
+components/dashboard/ → Reusable dashboard widgets and Recharts wrappers
+lib/
+  models/             → Mongoose schemas for users, platform accounts, and media items
+  platforms/          → Integration stubs (swap with real RapidAPI / YouTube calls)
+  services/           → Sync service that upserts data + overview aggregations
+  jobs/               → Helper to trigger sync for all platforms
+  queries.js          → Shared data loader used by pages and API routes
+```
 
-## Deploy on Vercel
+## Wiring Real Integrations
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **MongoDB** – supply a valid `MONGODB_URI` in `.env.local`. All API routes will immediately persist data instead of using mock records.
+2. **RapidAPI (Instagram & TikTok)**
+   - Instagram is wired to RapidAPI via axios (`lib/platforms/instagram.js`). Swap the TikTok provider to use the endpoints you will supply, following the same axios pattern.
+   - Include the RapidAPI headers:
+     ```js
+     const response = await fetch(rapidEndpoint, {
+       headers: {
+         "x-rapidapi-key": process.env.RAPIDAPI_KEY,
+         "x-rapidapi-host": process.env.RAPIDAPI_HOST_INSTAGRAM,
+       },
+     });
+     ```
+   - Map the API response fields to the `{ account, media }` structure expected by `upsertPlatformData`.
+3. **YouTube Data API** – update `lib/platforms/youtube.js` to call the official API using the `YOUTUBE_API_KEY` and `YOUTUBE_CHANNEL_ID`.
+4. **Authentication** – if the upstream API requires OAuth (e.g., Instagram Graph API), store any tokens or secrets in the environment and inject them into the provider modules above.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Onboarding a new Instagram account
+
+1. Ensure `RAPIDAPI_KEY` and `RAPIDAPI_HOST_INSTAGRAM` are configured.
+2. Use the “Add Account” button in the dashboard (or `POST /api/accounts`) with a JSON body including the Instagram profile URL (e.g. `{ "url": "https://www.instagram.com/javan/" }`).
+3. The API detects the platform, resolves the Instagram user id, exhausts the RapidAPI `reels` pagination via axios, and persists the account + media documents to MongoDB.
+4. Subsequent syncs reuse the stored user id for more efficient refreshes.
+5. Repeat for as many profiles as you need—the overview, account cards, and filters will automatically include every stored account.
+
+## Scheduled Refresh
+
+- Deploy on Vercel and configure a [Cron Job](https://vercel.com/docs/cron-jobs) to `POST https://your-domain/api/sync-all`.
+- Set the `SYNC_WEBHOOK_SECRET` environment variable and supply it via the `Authorization: Bearer <secret>` header to protect the route.
+- The helper in `lib/jobs/syncAllPlatforms.js` loops through all supported platforms and updates MongoDB records in sequence.
+
+## API Reference (development mocks)
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `POST` | `/api/sync/[platform]` | Fetches data for a single platform (`instagram`, `tiktok`, or `youtube`) and upserts into MongoDB. |
+| `GET` | `/api/sync/[platform]` | Returns the most recent account + media records for the platform. |
+| `POST` | `/api/accounts` | Detects the platform based on a profile URL, resolves identifiers, and ingests the account (currently Instagram only). |
+| `POST` | `/api/sync-all` | Triggers ingestion for every supported platform. Protect with the optional bearer token. |
+| `GET` | `/api/analytics/overview` | Aggregated totals across platforms. |
+| `GET` | `/api/analytics/platform/[platform]` | Aggregated analytics for a single platform. |
+| `GET` | `/api/media?platform=&startDate=&endDate=` | Filterable list of media items, sorted by the requested metric. |
+
+## Next Steps
+
+- Swap the mock provider implementations with live API calls and schedule periodic refreshes.
+- Add authentication/authorization if multiple end-users will manage their own accounts.
+- Expand the historical model if you need day-level growth charts beyond the snapshot arrays included today.
+- Layer in automated tests (e.g., API contract tests) once the data sources are finalised.
+
+## Useful Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the Next.js development server with Turbopack. |
+| `npm run build` | Production build. Requires all environment variables to be present. |
+| `npm run start` | Run the production build locally. |
