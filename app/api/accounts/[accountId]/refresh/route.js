@@ -60,6 +60,26 @@ function buildFetcherOptions(account) {
     };
   }
 
+  if (account.platform === "youtube") {
+    const metadataChannelId = stringOrNull(metadata?.channelId);
+    const storedHandle = stringOrNull(metadata?.handle) || baseUsername;
+    const handleWithAt = storedHandle
+      ? storedHandle.startsWith("@")
+        ? storedHandle
+        : `@${storedHandle}`
+      : null;
+
+    return {
+      username,
+      channelId: metadataChannelId || storedAccountId,
+      identifier:
+        stringOrNull(metadata?.identifierUsed) || handleWithAt || username || null,
+      handle: handleWithAt,
+      url: stringOrNull(metadata?.sourceUrl) || stringOrNull(account?.profileUrl),
+      useMockOnError: false,
+    };
+  }
+
   return null;
 }
 
@@ -119,7 +139,7 @@ export async function POST(_request, { params }) {
     );
   }
 
-  const hasIdentifier = Boolean(options.userId || options.secUid);
+  const hasIdentifier = Boolean(options.userId || options.secUid || options.channelId);
 
   if (!hasIdentifier) {
     return NextResponse.json(
@@ -139,6 +159,14 @@ export async function POST(_request, { params }) {
       identifiers.instagramUserId = options.userId;
     } else if (existingAccount.platform === "tiktok") {
       identifiers.secUid = options.secUid;
+    } else if (existingAccount.platform === "youtube") {
+      identifiers.channelId = options.channelId;
+      if (options.handle) {
+        identifiers.handle = options.handle;
+      }
+      if (options.identifier) {
+        identifiers.identifierUsed = options.identifier;
+      }
     }
     if (options.username) {
       identifiers.username = options.username;
