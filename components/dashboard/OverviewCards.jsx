@@ -2,7 +2,7 @@
 
 function StatCard({ title, value, subtitle }) {
   return (
-    <div className="flex flex-col justify-between rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900/70 via-slate-900/40 to-slate-900/20 p-6 shadow-lg">
+    <div className="flex h-full min-h-[170px] flex-col justify-between rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900/70 via-slate-900/40 to-slate-900/20 px-6 py-5 shadow-lg">
       <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">
         {title}
       </p>
@@ -55,7 +55,7 @@ export default function OverviewCards({ overview }) {
   ];
 
   return (
-    <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+    <section className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => (
         <StatCard key={card.title} {...card} />
       ))}

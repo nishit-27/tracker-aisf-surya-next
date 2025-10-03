@@ -1,13 +1,26 @@
 "use client";
 
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-function formatPercent(value) {
-  const numeric = Number(value ?? 0);
-  if (!Number.isFinite(numeric)) {
-    return "0%";
+function formatValue(value) {
+  if (value === undefined || value === null) {
+    return "0";
   }
-  return `${numeric.toFixed(1)}%`;
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "0";
+  }
+
+  if (Math.abs(numeric) >= 1_000_000) {
+    return `${(numeric / 1_000_000).toFixed(1)}M`;
+  }
+
+  if (Math.abs(numeric) >= 1_000) {
+    return `${(numeric / 1_000).toFixed(1)}K`;
+  }
+
+  return numeric.toLocaleString();
 }
 
 function formatDateLabel(value) {
@@ -21,25 +34,19 @@ function formatDateLabel(value) {
   });
 }
 
-export default function EngagementTrendChart({ data, color = "#14b8a6" }) {
+export default function OverviewMetricChart({ data, metric = "views", color = "#a855f7" }) {
   if (!data.length) {
     return (
       <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
-        Not enough engagement history for this selection yet.
+        No metric data available for the selected period.
       </div>
     );
   }
 
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <AreaChart data={data}>
-        <defs>
-          <linearGradient id="engagementArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={color} stopOpacity={0.35} />
-            <stop offset="95%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid stroke="#131523" />
+      <BarChart data={data} barSize={18}>
+        <CartesianGrid stroke="#131523" vertical={false} />
         <XAxis
           dataKey="date"
           stroke="#64748b"
@@ -50,13 +57,13 @@ export default function EngagementTrendChart({ data, color = "#14b8a6" }) {
         />
         <YAxis
           stroke="#64748b"
-          tickFormatter={formatPercent}
+          tickFormatter={formatValue}
           tick={{ fontSize: 12 }}
           axisLine={false}
           tickLine={false}
-          domain={[0, "auto"]}
         />
         <Tooltip
+          cursor={{ fill: "#1f2335", opacity: 0.35 }}
           wrapperStyle={{ outline: "none" }}
           contentStyle={{
             backgroundColor: "#0b0c16",
@@ -65,19 +72,11 @@ export default function EngagementTrendChart({ data, color = "#14b8a6" }) {
             color: "#e2e8f0",
           }}
           labelStyle={{ color: "#94a3b8" }}
-          formatter={(value) => formatPercent(value)}
+          formatter={(value) => formatValue(value)}
           labelFormatter={(value) => formatDateLabel(value)}
         />
-        <Area
-          type="monotone"
-          dataKey="engagementRate"
-          stroke={color}
-          strokeWidth={2.5}
-          fill="url(#engagementArea)"
-          dot={{ stroke: color, strokeWidth: 2, r: 3, fill: "#0b0c16" }}
-          activeDot={{ stroke: color, strokeWidth: 2, r: 5 }}
-        />
-      </AreaChart>
+        <Bar dataKey={metric} radius={[6, 6, 12, 12]} fill={color} />
+      </BarChart>
     </ResponsiveContainer>
   );
 }
