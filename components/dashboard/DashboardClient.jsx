@@ -274,15 +274,15 @@ function StatCard({ label, value, delta, icon: Icon, accent, description }) {
     delta?.tone === "positive"
       ? "text-emerald-400"
       : delta?.tone === "negative"
-      ? "text-rose-400"
-      : "text-slate-400";
+        ? "text-rose-400"
+        : "text-slate-400";
 
   const DeltaIcon =
     delta?.tone === "positive"
       ? ArrowUpRight
       : delta?.tone === "negative"
-      ? ArrowDownRight
-      : null;
+        ? ArrowDownRight
+        : null;
 
   return (
     <div
@@ -615,11 +615,11 @@ export default function DashboardClient({ data, platforms }) {
   );
   const engagementAverage = filteredMedia.length
     ? filteredMedia.reduce((sum, item) => sum + (item.metrics?.engagementRate ?? 0), 0) /
-      filteredMedia.length
+    filteredMedia.length
     : 0;
   const previousEngagementAverage = previousMedia.length
     ? previousMedia.reduce((sum, item) => sum + (item.metrics?.engagementRate ?? 0), 0) /
-      previousMedia.length
+    previousMedia.length
     : null;
 
   const activeAccountsNow = useMemo(() => {
@@ -927,11 +927,10 @@ export default function DashboardClient({ data, platforms }) {
                       key={platformKey}
                       type="button"
                       onClick={() => setSelectedPlatform(platformKey)}
-                      className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${
-                        isActive
+                      className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${isActive
                           ? "bg-sky-500/20 text-sky-300"
                           : "text-slate-400 hover:text-sky-200"
-                      }`}
+                        }`}
                     >
                       <PlatformImage platform={platformKey} className="h-3 w-3" />
                     </button>
@@ -1182,11 +1181,10 @@ export default function DashboardClient({ data, platforms }) {
                       key={account._id}
                       type="button"
                       onClick={() => toggleComparisonAccount(account._id)}
-                      className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
-                        isSelected
+                      className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${isSelected
                           ? "border-sky-400/60 bg-sky-400/10 text-white"
                           : "border-white/10 bg-white/5 text-slate-300 hover:border-white/20"
-                      }`}
+                        }`}
                     >
                       <div>
                         <p className="text-sm font-semibold">
@@ -1300,7 +1298,7 @@ export default function DashboardClient({ data, platforms }) {
               default: return "/globe.svg";
             }
           };
-          
+
           return {
             value: platformKey,
             label: platformKey === "all" ? "All Platforms" : platformKey.charAt(0).toUpperCase() + platformKey.slice(1),
@@ -1324,9 +1322,9 @@ export default function DashboardClient({ data, platforms }) {
     ];
   }, [selectedAccount, selectedProject, selectedPlatform, selectedRange, accountOptions, projectOptions, platformFilters]);
 
-        return (
-          <div className="flex min-h-screen bg-[#05060f] text-white overflow-hidden">
-            {activeTab !== "tracking" && <FloatingNavbar navItems={floatingNavItems} />}
+  return (
+    <div className="flex min-h-screen max-w-screen w-screen bg-[#05060f] text-white overflow-hidden">
+      {activeTab !== "tracking" && <FloatingNavbar navItems={floatingNavItems} />}
       <aside className="hidden w-[240px] flex-col border-r border-white/5 bg-[#070714] px-4 py-6 lg:flex">
         <div>
           <div className="flex items-center gap-3">
@@ -1361,11 +1359,10 @@ export default function DashboardClient({ data, platforms }) {
                       key={item.id}
                       type="button"
                       onClick={() => setActiveTab(item.id)}
-                      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-2 text-sm transition ${
-                        isActive
+                      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-2 text-sm transition ${isActive
                           ? "bg-sky-500/20 text-white"
                           : "text-slate-400 hover:bg-white/5 hover:text-white"
-                      }`}
+                        }`}
                     >
                       <Icon className="h-4 w-4" />
                       <span>{item.label}</span>
@@ -1380,7 +1377,7 @@ export default function DashboardClient({ data, platforms }) {
         <div className="mt-auto" />
       </aside>
 
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 overflow-auto flex-col min-w-0">
         <header className="border-b border-white/5 bg-[#090a18]">
           <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <div>
