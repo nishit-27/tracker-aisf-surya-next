@@ -19,6 +19,7 @@ import {
   Area,
   AreaChart,
 } from "recharts";
+import AppDropdown from "../ui/AppDropdown";
 
 function formatNumber(value) {
   if (value === undefined || value === null) return "—";
@@ -63,6 +64,12 @@ const platformMetrics = [
   { key: "totalShares", label: "Total Shares", color: "#8b5cf6" },
   { key: "engagementRate", label: "Engagement Rate", color: "#06b6d4" },
   { key: "mediaCount", label: "Media Count", color: "#84cc16" },
+];
+
+const platformViewModes = [
+  { value: "pie", label: "Pie Chart" },
+  { value: "bar", label: "Bar Chart" },
+  { value: "line", label: "Line Chart" },
 ];
 
 export default function PlatformDeepDive({ accounts, media, selectedPlatform }) {
@@ -296,27 +303,25 @@ export default function PlatformDeepDive({ accounts, media, selectedPlatform }) 
         </div>
         
         <div className="flex gap-2">
-          <select
+          <AppDropdown
             value={selectedMetric}
-            onChange={(e) => setSelectedMetric(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-          >
-            {platformMetrics.map(metric => (
-              <option key={metric.key} value={metric.key}>
-                {metric.label}
-              </option>
-            ))}
-          </select>
-          
-          <select
+            options={platformMetrics}
+            optionLabel="label"
+            optionValue="key"
+            onChange={setSelectedMetric}
+            className="min-w-[200px]"
+            panelClassName="mt-2 min-w-[240px]"
+            placeholder=""
+          />
+
+          <AppDropdown
             value={viewMode}
-            onChange={(e) => setViewMode(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-          >
-            <option value="pie">Pie Chart</option>
-            <option value="bar">Bar Chart</option>
-            <option value="line">Line Chart</option>
-          </select>
+            options={platformViewModes}
+            onChange={setViewMode}
+            className="min-w-[160px]"
+            panelClassName="mt-2 min-w-[200px]"
+            placeholder=""
+          />
         </div>
       </div>
 

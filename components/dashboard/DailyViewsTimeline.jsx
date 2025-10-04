@@ -93,22 +93,17 @@ export default function DailyViewsTimeline({
   selectedAccounts = [],
 }) {
   const effectiveAccountIds = useMemo(() => {
+    if (selectedAccounts?.length) {
+      return selectedAccounts
+        .map((accountId) => accounts.find((account) => account._id === accountId))
+        .filter(Boolean)
+        .map((account) => account._id);
+    }
+
     let filtered = accounts;
 
     if (selectedPlatform !== "all") {
       filtered = filtered.filter((account) => account.platform === selectedPlatform);
-    }
-
-    if (selectedAccounts?.length) {
-      const allowed = new Set(selectedAccounts);
-      const matches = selectedAccounts
-        .map((accountId) => filtered.find((account) => account._id === accountId))
-        .filter(Boolean)
-        .map((account) => account._id);
-
-      if (matches.length) {
-        return matches;
-      }
     }
 
     if (selectedAccount !== "all") {

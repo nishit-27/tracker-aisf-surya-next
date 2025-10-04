@@ -14,6 +14,8 @@ import {
   Legend,
 } from "recharts";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 function formatNumber(value) {
   if (value === undefined || value === null) {
     return "—";
@@ -60,6 +62,7 @@ export default function MultiAccountDailyTrend({
   accounts = [],
   media = [],
   selectedAccounts = [],
+  rangeDays = null,
 }) {
   const selectedEntries = useMemo(() => {
     if (!selectedAccounts?.length) {
@@ -125,7 +128,23 @@ export default function MultiAccountDailyTrend({
 
     const sortedDates = Array.from(dateSet).sort((a, b) => new Date(a) - new Date(b));
 
-    return sortedDates.map((dateKey) => {
+    const threshold =
+      typeof rangeDays === "number" && Number.isFinite(rangeDays)
+        ? Date.now() - rangeDays * DAY_MS
+        : null;
+
+    const filteredDates =
+      threshold !== null
+        ? sortedDates.filter((dateKey) => {
+            const parsed = new Date(dateKey);
+            if (Number.isNaN(parsed.getTime())) {
+              return false;
+            }
+            return parsed.getTime() >= threshold;
+          })
+        : sortedDates;
+
+    return filteredDates.map((dateKey) => {
       const row = { date: dateKey };
 
       seriesLookups.forEach(({ label, map }) => {
@@ -136,7 +155,7 @@ export default function MultiAccountDailyTrend({
 
       return row;
     });
-  }, [selectedEntries]);
+  }, [selectedEntries, rangeDays]);
 
   const hasSelection = selectedAccounts?.length > 0;
   const hasData = chartData.length > 0 && selectedEntries.length > 0;

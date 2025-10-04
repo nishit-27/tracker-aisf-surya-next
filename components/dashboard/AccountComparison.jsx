@@ -14,6 +14,7 @@ import {
   Area,
   AreaChart,
 } from "recharts";
+import AppDropdown from "../ui/AppDropdown";
 
 function formatNumber(value) {
   if (value === undefined || value === null) return "—";
@@ -42,9 +43,19 @@ const comparisonMetrics = [
   { key: "mediaCount", label: "Media Count", color: "#84cc16" },
 ];
 
+const viewModeOptions = [
+  { value: "bar", label: "Bar Chart" },
+  { value: "line", label: "Line Chart" },
+  { value: "area", label: "Area Chart" },
+];
+
 export default function AccountComparison({ accounts, selectedAccounts = [] }) {
   const [selectedMetric, setSelectedMetric] = useState("followers");
   const [viewMode, setViewMode] = useState("bar"); // bar, line, area
+  const metricOptions = useMemo(
+    () => comparisonMetrics.map((metric) => ({ value: metric.key, label: metric.label })),
+    [],
+  );
 
   const comparisonData = useMemo(() => {
     if (selectedAccounts.length < 2) return [];
@@ -122,27 +133,23 @@ export default function AccountComparison({ accounts, selectedAccounts = [] }) {
         </div>
         
         <div className="flex gap-2">
-          <select
+          <AppDropdown
             value={selectedMetric}
-            onChange={(e) => setSelectedMetric(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-          >
-            {comparisonMetrics.map(metric => (
-              <option key={metric.key} value={metric.key}>
-                {metric.label}
-              </option>
-            ))}
-          </select>
-          
-          <select
+            options={metricOptions}
+            onChange={setSelectedMetric}
+            className="min-w-[200px]"
+            panelClassName="mt-2 min-w-[220px]"
+            placeholder=""
+          />
+
+          <AppDropdown
             value={viewMode}
-            onChange={(e) => setViewMode(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-          >
-            <option value="bar">Bar Chart</option>
-            <option value="line">Line Chart</option>
-            <option value="area">Area Chart</option>
-          </select>
+            options={viewModeOptions}
+            onChange={setViewMode}
+            className="min-w-[160px]"
+            panelClassName="mt-2 min-w-[200px]"
+            placeholder=""
+          />
         </div>
       </div>
 

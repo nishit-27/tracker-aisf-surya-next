@@ -11,6 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import AppDropdown from "../ui/AppDropdown";
 
 const platformColors = {
   instagram: "#ec4899",
@@ -402,6 +403,14 @@ export default function CrossPlatformContentComparison({ accounts = [], media = 
             {selectedEntries.map((entry) => {
               const videos = accountMediaMap.get(entry.account._id) || [];
               const hasVideos = videos.length > 0;
+              const videoOptions = hasVideos
+                ? videos.map((video) => ({
+                    value: video._id,
+                    label: `${video.title || video.externalId || "Untitled"}${
+                      video.publishedAt ? ` · ${formatDate(video.publishedAt)}` : ""
+                    }`,
+                  }))
+                : [];
 
               return (
                 <div
@@ -429,18 +438,14 @@ export default function CrossPlatformContentComparison({ accounts = [], media = 
                       <label className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
                         Select video
                       </label>
-                      <select
+                      <AppDropdown
                         value={selectedMediaMap[entry.account._id] || videos[0]._id}
-                        onChange={(event) => handleVideoChange(entry.account._id, event.target.value)}
-                        className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-                      >
-                        {videos.map((video) => (
-                          <option key={video._id} value={video._id}>
-                            {video.title || video.externalId || "Untitled"}
-                            {video.publishedAt ? ` · ${formatDate(video.publishedAt)}` : ""}
-                          </option>
-                        ))}
-                      </select>
+                        options={videoOptions}
+                        onChange={(nextValue) => handleVideoChange(entry.account._id, nextValue)}
+                        className="mt-1 w-full"
+                        panelClassName="mt-2 min-w-[260px]"
+                        placeholder=""
+                      />
                     </div>
                   ) : (
                     <div className="mt-3 rounded-md border border-slate-800 bg-slate-900/80 p-3 text-xs text-slate-400">

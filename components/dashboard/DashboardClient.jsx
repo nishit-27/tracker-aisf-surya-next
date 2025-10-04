@@ -7,7 +7,6 @@ import {
   ArrowUpRight,
   CalendarRange,
   CheckCircle2,
-  ChevronDown,
   Clapperboard,
   FolderKanban,
   Globe2,
@@ -28,6 +27,7 @@ import {
   Users,
   Video,
   Youtube,
+  Filter,
 } from "lucide-react";
 import EngagementTrendChart from "./EngagementTrendChart";
 import OverviewMetricChart from "./OverviewMetricChart";
@@ -38,8 +38,11 @@ import VideosTable from "./VideosTable";
 import AccountComparison from "./AccountComparison";
 import TimeAnalysis from "./TimeAnalysis";
 import PlatformDeepDive from "./PlatformDeepDive";
+import AppDropdown from "../ui/AppDropdown";
 import MultiAccountDailyTrend from "./MultiAccountDailyTrend";
 import DailyViewsTimeline from "./DailyViewsTimeline";
+import FloatingNavbar from "../ui/FloatingNavbar";
+import { PlatformImage } from "../../lib/utils/platformImages";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -91,13 +94,6 @@ const sidebarNavigation = [
       { id: "accounts", label: "Accounts", icon: Users },
       { id: "videos", label: "Videos", icon: Clapperboard },
       { id: "tracking", label: "Tracking Options", icon: Radar },
-    ],
-  },
-  {
-    title: "Organization",
-    items: [
-      { id: "projects", label: "Projects", icon: FolderKanban },
-      { id: "server", label: "MCP Server", icon: Server },
     ],
   },
 ];
@@ -353,6 +349,8 @@ export default function DashboardClient({ data, platforms }) {
   const [selectedProject, setSelectedProject] = useState("all");
   const [primaryMetric, setPrimaryMetric] = useState("views");
   const [trackingRange, setTrackingRange] = useState("90d");
+  const mainScrollRef = useRef(null);
+  const [isToolbarFloating, setIsToolbarFloating] = useState(false);
 
   const platformFilters = useMemo(() => {
     const unique = Array.from(new Set([...(platforms ?? [])]));
@@ -382,6 +380,17 @@ export default function DashboardClient({ data, platforms }) {
       setSelectedPlatform(selected.platform);
     }
   }, [accountOptions, selectedAccount, selectedPlatform]);
+
+  // Handle platform filter changes - reset account selection if it doesn't match the new platform
+  useEffect(() => {
+    // Only run when platform changes and we have a specific account selected
+    if (selectedPlatform !== "all" && selectedAccount !== "all") {
+      const selectedAccountOption = accountOptions.find((option) => option.value === selectedAccount);
+      if (selectedAccountOption && selectedAccountOption.platform !== selectedPlatform) {
+        setSelectedAccount("all");
+      }
+    }
+  }, [selectedPlatform, selectedAccount, accountOptions]);
 
   useEffect(() => {
     const availableIds = analyticsData.accounts.map((account) => account._id);
@@ -630,13 +639,14 @@ export default function DashboardClient({ data, platforms }) {
     return countActiveAccounts(filteredAccounts, rangeBoundaries.previousStart, rangeBoundaries.currentStart);
   }, [filteredAccounts, rangeBoundaries, activeAccountsNow]);
 
+  const trackingDays = dateRanges[trackingRange];
+
   const trackingMedia = useMemo(() => {
-    const days = dateRanges[trackingRange];
-    if (!days || days === null) {
+    if (trackingDays === null || trackingDays === undefined) {
       return analyticsData.media;
     }
 
-    const threshold = Date.now() - days * DAY_MS;
+    const threshold = Date.now() - trackingDays * DAY_MS;
 
     return analyticsData.media.filter((item) => {
       if (!item?.publishedAt) {
@@ -648,7 +658,7 @@ export default function DashboardClient({ data, platforms }) {
       }
       return publishedAt >= threshold;
     });
-  }, [analyticsData.media, trackingRange]);
+  }, [analyticsData.media, trackingDays]);
 
   const statCards = useMemo(
     () => [
@@ -845,6 +855,117 @@ export default function DashboardClient({ data, platforms }) {
     });
   }, []);
 
+  useEffect(() => {
+    const scrollElement = mainScrollRef.current;
+    if (!scrollElement) {
+      return;
+    }
+
+    const handleScroll = () => {
+      setIsToolbarFloating(scrollElement.scrollTop > 24);
+    };
+
+    handleScroll();
+    scrollElement.addEventListener("scroll", handleScroll, { passive: true });
+    return () => scrollElement.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const toolbarWrapperClass = isToolbarFloating
+    ? "fixed left-0 right-0 top-[96px] z-40 px-4 sm:px-6 lg:px-8"
+    : "sticky top-4 z-30";
+
+  const toolbarContainerClass = isToolbarFloating
+    ? "rounded-3xl border border-white/10 bg-[#0c0d1f]/95 px-4 py-3 backdrop-blur shadow-[0_20px_45px_rgba(8,11,24,0.55)]"
+    : "rounded-3xl border border-white/10 bg-[#0c0d1f]/90 px-4 py-3 backdrop-blur";
+  const toolbarSpacer = isToolbarFloating ? <div className="h-[96px]" /> : null;
+
+  const filterToolbar = (
+    <>
+      <div className={toolbarWrapperClass}>
+        <div className={toolbarContainerClass}>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Accounts Filter */}
+            <div className="flex min-h-[56px] flex-col gap-1 rounded-xl border border-white/10 bg-[#111327] px-3 py-2">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+                Accounts
+              </span>
+              <AppDropdown
+                value={selectedAccount}
+                options={accountOptions}
+                onChange={setSelectedAccount}
+                className="min-h-0 min-w-0 w-full border-0 bg-transparent px-0 text-sm font-semibold text-white"
+                panelClassName="mt-2 min-w-[200px]"
+                placeholder=""
+              />
+            </div>
+
+            {/* Projects Filter */}
+            <div className="flex min-h-[56px] flex-col gap-1 rounded-xl border border-white/10 bg-[#111327] px-3 py-2">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+                Projects
+              </span>
+              <AppDropdown
+                value={selectedProject}
+                options={projectOptions}
+                onChange={setSelectedProject}
+                className="min-h-0 min-w-0 w-full border-0 bg-transparent px-0 text-sm font-semibold text-white"
+                panelClassName="mt-2 min-w-[200px]"
+                placeholder=""
+              />
+            </div>
+
+            {/* Platforms Filter */}
+            <div className="flex min-h-[56px] flex-col gap-1 rounded-xl border border-white/10 bg-[#111327] px-3 py-2">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+                Platforms
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {platformFilters.map((platformKey) => {
+                  const isActive = selectedPlatform === platformKey;
+                  return (
+                    <button
+                      key={platformKey}
+                      type="button"
+                      onClick={() => setSelectedPlatform(platformKey)}
+                      className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${
+                        isActive
+                          ? "bg-sky-500/20 text-sky-300"
+                          : "text-slate-400 hover:text-sky-200"
+                      }`}
+                    >
+                      <PlatformImage platform={platformKey} className="h-3 w-3" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Date Range Filter */}
+            <div className="flex min-h-[56px] flex-col gap-1 rounded-xl border border-white/10 bg-[#111327] px-3 py-2">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+                Date Range
+              </span>
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/5 text-slate-300">
+                  <CalendarRange className="h-3 w-3" />
+                </div>
+                <AppDropdown
+                  value={selectedRange}
+                  options={rangeOptions}
+                  onChange={setSelectedRange}
+                  className="min-h-0 min-w-0 flex-1 border-0 bg-transparent px-0 text-sm font-semibold text-white"
+                  panelClassName="mt-2 min-w-[200px]"
+                  placeholder=""
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {toolbarSpacer}
+    </>
+  );
+
   function renderContent() {
     switch (activeTab) {
       case "overview":
@@ -874,17 +995,14 @@ export default function DashboardClient({ data, platforms }) {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400">Primary metric</span>
-                    <select
+                    <AppDropdown
                       value={primaryMetric}
-                      onChange={(event) => setPrimaryMetric(event.target.value)}
-                      className="rounded-full border border-white/10 bg-[#14142a] px-3 py-1.5 text-xs text-slate-200 focus:outline-none"
-                    >
-                      {metricDisplayOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                      options={metricDisplayOptions}
+                      onChange={setPrimaryMetric}
+                      className="min-h-0 min-w-[160px] rounded-full"
+                      panelClassName="mt-2 min-w-[200px]"
+                      placeholder=""
+                    />
                   </div>
                 </div>
                 <OverviewMetricChart data={metricsTimelineData} metric={primaryMetric} />
@@ -910,17 +1028,14 @@ export default function DashboardClient({ data, platforms }) {
                       Best performing content by {mediaSortOptions.find((opt) => opt.value === mediaSort)?.label?.toLowerCase()}
                     </p>
                   </div>
-                  <select
+                  <AppDropdown
                     value={mediaSort}
-                    onChange={(event) => setMediaSort(event.target.value)}
-                    className="rounded-full border border-white/10 bg-[#14142a] px-3 py-1.5 text-xs text-slate-200 focus:outline-none"
-                  >
-                    {mediaSortOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={mediaSortOptions}
+                    onChange={setMediaSort}
+                    className="min-h-0 min-w-[160px] rounded-full"
+                    panelClassName="mt-2 min-w-[200px]"
+                    placeholder=""
+                  />
                 </div>
 
                 {topMediaItems.length ? (
@@ -1095,17 +1210,14 @@ export default function DashboardClient({ data, platforms }) {
                 <h3 className="text-sm font-semibold text-white">Tracking Range</h3>
                 <p className="text-xs text-slate-400">Applies to the views vs time and median views timelines.</p>
               </div>
-              <select
+              <AppDropdown
                 value={trackingRange}
-                onChange={(event) => setTrackingRange(event.target.value)}
-                className="rounded-full border border-white/10 bg-[#14142a] px-3 py-1.5 text-xs text-slate-200 focus:outline-none"
-              >
-                {rangeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                options={rangeOptions}
+                onChange={setTrackingRange}
+                className="min-h-0 min-w-[160px] rounded-full"
+                panelClassName="mt-2 min-w-[200px]"
+                placeholder=""
+              />
             </div>
             <DailyViewsTimeline
               accounts={analyticsData.accounts}
@@ -1116,8 +1228,9 @@ export default function DashboardClient({ data, platforms }) {
             />
             <MultiAccountDailyTrend
               accounts={analyticsData.accounts}
-              media={trackingMedia}
+              media={analyticsData.media}
               selectedAccounts={selectedAccounts}
+              rangeDays={trackingDays}
             />
             <AccountComparison accounts={analyticsData.accounts} selectedAccounts={selectedAccounts} />
             <TimeAnalysis
@@ -1155,9 +1268,66 @@ export default function DashboardClient({ data, platforms }) {
     }
   }
 
-  return (
-    <div className="flex min-h-screen bg-[#05060f] text-white">
-      <aside className="hidden w-[260px] flex-col border-r border-white/5 bg-[#070714] px-6 py-8 lg:flex">
+  // Create floating nav items for major filters
+  const floatingNavItems = useMemo(() => {
+    const selectedAccountLabel = accountOptions.find(opt => opt.value === selectedAccount)?.label || "All accounts";
+    const selectedProjectLabel = projectOptions.find(opt => opt.value === selectedProject)?.label || "All projects";
+    const selectedRangeLabel = rangeOptions.find(opt => opt.value === selectedRange)?.label || "Last 30 days";
+
+    return [
+      {
+        name: "Accounts",
+        placeholder: "Select account...",
+        icon: <Users className="h-4 w-4" />,
+        hasDropdown: true,
+        selectedValue: accountOptions.find(opt => opt.value === selectedAccount)?.label || "All accounts",
+        dropdownOptions: accountOptions.map(option => ({
+          label: option.label,
+          onClick: () => setSelectedAccount(option.value)
+        }))
+      },
+      {
+        name: "Platforms",
+        placeholder: "Select platform...",
+        icon: <Filter className="h-4 w-4" />,
+        hasDropdown: false,
+        platformOptions: platformFilters.map(platformKey => {
+          const getPlatformImage = (platform) => {
+            switch (platform) {
+              case "instagram": return "/instagram-svgrepo-com.svg";
+              case "youtube": return "/youtube-svgrepo-com.svg";
+              case "tiktok": return "/tiktok-logo-logo-svgrepo-com.svg";
+              default: return "/globe.svg";
+            }
+          };
+          
+          return {
+            value: platformKey,
+            label: platformKey === "all" ? "All Platforms" : platformKey.charAt(0).toUpperCase() + platformKey.slice(1),
+            imageSrc: getPlatformImage(platformKey),
+            isActive: selectedPlatform === platformKey,
+            onClick: () => setSelectedPlatform(platformKey)
+          };
+        })
+      },
+      {
+        name: "Date Range",
+        placeholder: "Select date range...",
+        icon: <CalendarRange className="h-4 w-4" />,
+        hasDropdown: true,
+        selectedValue: rangeOptions.find(opt => opt.value === selectedRange)?.label || "Last 30 days",
+        dropdownOptions: rangeOptions.map(option => ({
+          label: option.label,
+          onClick: () => setSelectedRange(option.value)
+        }))
+      },
+    ];
+  }, [selectedAccount, selectedProject, selectedPlatform, selectedRange, accountOptions, projectOptions, platformFilters]);
+
+        return (
+          <div className="flex min-h-screen bg-[#05060f] text-white overflow-hidden">
+            {activeTab !== "tracking" && <FloatingNavbar navItems={floatingNavItems} />}
+      <aside className="hidden w-[240px] flex-col border-r border-white/5 bg-[#070714] px-4 py-6 lg:flex">
         <div>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-300">
@@ -1207,44 +1377,12 @@ export default function DashboardClient({ data, platforms }) {
           ))}
         </nav>
 
-        <div className="mt-auto space-y-3 text-sm text-slate-400">
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-2xl px-4 py-2 text-left transition hover:bg-white/5 hover:text-white"
-          >
-            <LifeBuoy className="h-4 w-4" />
-            Support
-          </button>
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-2xl px-4 py-2 text-left transition hover:bg-white/5 hover:text-white"
-          >
-            <Sparkles className="h-4 w-4" />
-            Affiliate Program
-          </button>
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-2xl px-4 py-2 text-left transition hover:bg-white/5 hover:text-white"
-          >
-            <Home className="h-4 w-4" />
-            Homepage
-          </button>
-        </div>
-
-        <div className="mt-6 flex items-center gap-3 rounded-2xl border border-white/5 bg-[#101125] px-4 py-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500/20 text-sky-300">
-            b
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white">bigfoots macd</p>
-            <p className="text-xs text-slate-400">macdbigfoots@gmail.com</p>
-          </div>
-        </div>
+        <div className="mt-auto" />
       </aside>
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col min-w-0">
         <header className="border-b border-white/5 bg-[#090a18]">
-          <div className="flex flex-wrap items-center justify-between gap-4 px-8 py-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.4em] text-slate-500">
                 {activeNavItem?.section || "Analytics"}
@@ -1280,112 +1418,17 @@ export default function DashboardClient({ data, platforms }) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-[#05060f]">
-          <div className="px-6 py-8 md:px-8">
+        <main ref={mainScrollRef} className="flex-1 overflow-y-auto bg-[#05060f]">
+          <div className="px-4 py-6 sm:px-6 lg:px-8">
             {refreshError ? (
               <div className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
                 {refreshError}
               </div>
             ) : null}
 
-            {activeTab === "overview" ? (
-              <>
-                <div className="flex flex-wrap items-stretch gap-3">
-                  <div className="flex min-h-[88px] min-w-[220px] flex-1 items-center gap-3 rounded-2xl border border-white/5 bg-[#111327] px-4 py-4">
-                    <div className="flex w-full flex-col gap-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
-                        Accounts
-                      </span>
-                      <select
-                        value={selectedAccount}
-                        onChange={(event) => setSelectedAccount(event.target.value)}
-                        className="w-full appearance-none bg-transparent text-sm font-semibold text-white focus:outline-none"
-                      >
-                        {accountOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <ChevronDown className="h-4 w-4 flex-shrink-0 text-slate-500" />
-                  </div>
+            {activeTab !== "accounts" && activeTab !== "videos" && activeTab !== "tracking" && filterToolbar}
 
-                  <div className="flex min-h-[88px] min-w-[220px] flex-1 items-center gap-3 rounded-2xl border border-white/5 bg-[#111327] px-4 py-4">
-                    <div className="flex w-full flex-col gap-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
-                        Projects
-                      </span>
-                      <select
-                        value={selectedProject}
-                        onChange={(event) => setSelectedProject(event.target.value)}
-                        className="w-full appearance-none bg-transparent text-sm font-semibold text-white focus:outline-none"
-                      >
-                        {projectOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <ChevronDown className="h-4 w-4 flex-shrink-0 text-slate-500" />
-                  </div>
-
-                  <div className="flex min-h-[88px] min-w-[260px] flex-1 flex-col rounded-2xl border border-white/5 bg-[#111327] px-4 py-4">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
-                      Platforms
-                    </span>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {platformFilters.map((platformKey) => {
-                        const Icon = getPlatformIcon(platformKey);
-                        const isActive = selectedPlatform === platformKey;
-                        return (
-                          <button
-                            key={platformKey}
-                            type="button"
-                            onClick={() => setSelectedPlatform(platformKey)}
-                            className={`flex h-9 w-9 items-center justify-center rounded-2xl transition ${
-                              isActive
-                                ? "bg-sky-500/20 text-sky-300"
-                                : "text-slate-400 hover:text-sky-200"
-                            }`}
-                          >
-                            <Icon className="h-4 w-4" />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex min-h-[88px] min-w-[220px] flex-1 flex-col rounded-2xl border border-white/5 bg-[#111327] px-4 py-4">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
-                      Date Range
-                    </span>
-                    <div className="mt-3 flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/5 text-slate-300">
-                        <CalendarRange className="h-4 w-4" />
-                      </div>
-                      <select
-                        value={selectedRange}
-                        onChange={(event) => setSelectedRange(event.target.value)}
-                        className="flex-1 appearance-none bg-transparent text-sm font-semibold text-white focus:outline-none"
-                      >
-                        {rangeOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="h-4 w-4 flex-shrink-0 text-slate-500" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6">{renderContent()}</div>
-              </>
-            ) : (
-              renderContent()
-            )}
+            <div className="mt-6">{renderContent()}</div>
           </div>
         </main>
       </div>

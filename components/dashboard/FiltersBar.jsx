@@ -1,5 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
+import AppDropdown from "../ui/AppDropdown";
+
 const rangeOptions = [
   { value: "7d", label: "Last 7 days" },
   { value: "30d", label: "Last 30 days" },
@@ -32,84 +35,79 @@ export default function FiltersBar({
     .filter(Boolean)
     .join(" ");
 
+  const platformOptions = useMemo(
+    () =>
+      platforms.map((platform) => ({
+        value: platform,
+        label:
+          platform === "all"
+            ? "All Platforms"
+            : platform.charAt(0).toUpperCase() + platform.slice(1),
+      })),
+    [platforms],
+  );
+
   return (
     <section className={containerClassName}>
       <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
           Platform
-          <select
+          <AppDropdown
             value={selectedPlatform}
-            onChange={(event) => onPlatformChange(event.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-          >
-            {platforms.map((platform) => (
-              <option key={platform} value={platform}>
-                {platform === "all"
-                  ? "All Platforms"
-                  : platform.charAt(0).toUpperCase() + platform.slice(1)}
-              </option>
-            ))}
-          </select>
+            options={platformOptions}
+            onChange={onPlatformChange}
+            className="w-full"
+            panelClassName="mt-2 min-w-[220px]"
+            placeholder=""
+          />
         </label>
 
         <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
           Account
-          <select
+          <AppDropdown
             value={selectedAccount}
-            onChange={(event) => onAccountChange(event.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-          >
-            {accounts.map((account) => (
-              <option key={account.value} value={account.value}>
-                {account.label}
-              </option>
-            ))}
-          </select>
+            options={accounts}
+            onChange={onAccountChange}
+            className="w-full"
+            panelClassName="mt-2 min-w-[260px]"
+            placeholder=""
+          />
         </label>
 
         <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
           Date Range
-          <select
+          <AppDropdown
             value={selectedRange}
-            onChange={(event) => onRangeChange(event.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-          >
-            {rangeOptions.map((range) => (
-              <option key={range.value} value={range.value}>
-                {range.label}
-              </option>
-            ))}
-          </select>
+            options={rangeOptions}
+            onChange={onRangeChange}
+            className="w-full"
+            panelClassName="mt-2 min-w-[220px]"
+            placeholder=""
+          />
         </label>
 
         <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
           Comparison Metric
-          <select
+          <AppDropdown
             value={comparisonMetric}
-            onChange={(event) => onComparisonMetricChange(event.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-          >
-            {comparisonOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            options={comparisonOptions}
+            onChange={onComparisonMetricChange}
+            className="w-full"
+            panelClassName="mt-2 min-w-[220px]"
+            placeholder=""
+          />
         </label>
 
         <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
           Sort Media By
-          <select
+          <AppDropdown
             value={mediaSort}
-            onChange={(event) => onMediaSortChange(event.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-          >
-            {sortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            options={sortOptions}
+            onChange={onMediaSortChange}
+            className="w-full"
+            panelClassName="mt-2 min-w-[220px]"
+            placeholder=""
+          />
         </label>
       </div>
     </section>

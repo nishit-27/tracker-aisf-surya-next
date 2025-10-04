@@ -19,6 +19,7 @@ import {
   YAxis,
   Legend,
 } from "recharts";
+import AppDropdown from "../ui/AppDropdown";
 
 function formatNumber(value) {
   if (value === undefined || value === null) return "—";
@@ -45,6 +46,20 @@ function formatDate(date) {
     year: 'numeric' 
   });
 }
+
+const chartTypeOptions = [
+  { value: "line", label: "Line Chart" },
+  { value: "area", label: "Area Chart" },
+  { value: "bar", label: "Bar Chart" },
+];
+
+const sortByOptions = [
+  { value: "publishedAt", label: "Published Date" },
+  { value: "views", label: "Views" },
+  { value: "likes", label: "Likes" },
+  { value: "comments", label: "Comments" },
+  { value: "engagementRate", label: "Engagement Rate" },
+];
 
 export default function AccountAnalysisModal({ account, isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState("overview");
@@ -394,17 +409,16 @@ export default function AccountAnalysisModal({ account, isOpen, onClose }) {
 
             {activeTab === "trends" && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <h3 className="text-lg font-semibold text-white">Performance Trends</h3>
-                  <select
+                  <AppDropdown
                     value={chartType}
-                    onChange={(e) => setChartType(e.target.value)}
-                    className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-                  >
-                    <option value="line">Line Chart</option>
-                    <option value="area">Area Chart</option>
-                    <option value="bar">Bar Chart</option>
-                  </select>
+                    options={chartTypeOptions}
+                    onChange={setChartType}
+                    className="min-w-[160px]"
+                    panelClassName="mt-2 min-w-[200px]"
+                    placeholder=""
+                  />
                 </div>
 
                 {historyData.length > 0 ? (
@@ -761,19 +775,16 @@ export default function AccountAnalysisModal({ account, isOpen, onClose }) {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-white">All Posts ({sortedMedia.length})</h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#111327] px-3 py-2 focus-within:border-sky-500 focus-within:shadow-[0_0_0_1px_rgba(14,165,233,0.35)]">
                     <span className="text-sm text-slate-400">Sort by:</span>
-                    <select 
+                    <AppDropdown
                       value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-1 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-                    >
-                      <option value="publishedAt">Published Date</option>
-                      <option value="views">Views</option>
-                      <option value="likes">Likes</option>
-                      <option value="comments">Comments</option>
-                      <option value="engagementRate">Engagement Rate</option>
-                    </select>
+                      options={sortByOptions}
+                      onChange={setSortBy}
+                      className="min-h-0 min-w-[160px] border-0 bg-transparent px-0 text-sm"
+                      panelClassName="mt-2 min-w-[220px]"
+                      placeholder=""
+                    />
                   </div>
                 </div>
 

@@ -6,31 +6,17 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  Bookmark,
   CalendarRange,
   Download,
   Eye,
   Gauge,
-  Globe2,
-  Heart,
-  Instagram,
-  MessageCircle,
   MoreHorizontal,
-  Music2,
   PlayCircle,
   Search,
-  Share2,
-  SlidersHorizontal,
   Timer,
-  Youtube,
 } from "lucide-react";
-
-const platformIcons = {
-  all: Globe2,
-  instagram: Instagram,
-  youtube: Youtube,
-  tiktok: Music2,
-};
+import AppDropdown from "../ui/AppDropdown";
+import { PlatformImage } from "../../lib/utils/platformImages";
 
 const rangeOptions = [
   { value: "7d", label: "Last 7 days" },
@@ -180,7 +166,11 @@ export default function VideosTable({
       const metrics = item.metrics || {};
       const publishedAt = item.publishedAt ? new Date(item.publishedAt) : null;
       const updatedAt = item.updatedAt ? new Date(item.updatedAt) : null;
-      const durationSeconds = Number(metadata.durationSeconds ?? metadata.duration ?? (metadata.durationMs ? metadata.durationMs / 1000 : null));
+      const durationSeconds = Number(
+        metadata.durationSeconds ??
+          metadata.duration ??
+          (metadata.durationMs ? metadata.durationMs / 1000 : null),
+      );
       const hoursSincePublished = publishedAt
         ? Math.max((Date.now() - publishedAt.getTime()) / (1000 * 60 * 60), 0.25)
         : null;
@@ -191,7 +181,8 @@ export default function VideosTable({
         raw: item,
         platform: item.platform || "unknown",
         title: item.title || "Untitled video",
-        accountName: account.displayName || account.username || account.accountId || "Unknown account",
+        accountName:
+          account.displayName || account.username || account.accountId || "Unknown account",
         accountHandle: account.username || account.accountId || "—",
         thumbnailUrl: item.thumbnailUrl || null,
         publishedAt,
@@ -218,7 +209,9 @@ export default function VideosTable({
 
     return items.map((item) => ({
       ...item,
-      velocity: averageRate && Number.isFinite(item.viewRate) ? item.viewRate / averageRate : null,
+      velocity: averageRate && Number.isFinite(item.viewRate)
+        ? item.viewRate / averageRate
+        : null,
     }));
   }, [media, accountMap]);
 
@@ -269,6 +262,11 @@ export default function VideosTable({
             return compareNumeric(a.updatedAtMs, b.updatedAtMs);
           case "duration":
             return compareNumeric(a.durationSeconds, b.durationSeconds);
+          case "platform": {
+            const aPlatform = a.platform?.toString().toLowerCase() ?? "";
+            const bPlatform = b.platform?.toString().toLowerCase() ?? "";
+            return aPlatform.localeCompare(bPlatform) * direction;
+          }
           default:
             return 0;
         }
@@ -289,75 +287,59 @@ export default function VideosTable({
   }, []);
 
   const columns = [
-    { id: "video", label: "Video", sortable: false, className: "w-[300px]" },
-    { id: "platform", label: "Platform", sortable: false, className: "min-w-[140px]" },
-    { id: "publishedAt", label: "Posted at", sortable: true },
+    { id: "video", label: "Video", sortable: false, className: "min-w-[260px]" },
+    { id: "account", label: "Account", sortable: false, className: "min-w-[200px]" },
+    { id: "platform", label: "Platform", sortable: true, sortKey: "platform", className: "min-w-[120px]" },
+    { id: "publishedAt", label: "Posted", sortable: true, sortKey: "publishedAt", className: "min-w-[120px]" },
     {
       id: "duration",
       label: "Duration",
       sortable: true,
+      sortKey: "duration",
       align: "text-right",
       icon: Timer,
       srLabel: "Duration",
+      className: "min-w-[90px] text-right hidden xl:table-cell",
     },
     {
       id: "views",
       label: "Views",
       sortable: true,
+      sortKey: "views",
       align: "text-right",
       icon: Eye,
       srLabel: "Views",
-    },
-    {
-      id: "likes",
-      label: "Likes",
-      sortable: true,
-      align: "text-right",
-      icon: Heart,
-      srLabel: "Likes",
-    },
-    {
-      id: "comments",
-      label: "Comments",
-      sortable: true,
-      align: "text-right",
-      icon: MessageCircle,
-      srLabel: "Comments",
-    },
-    {
-      id: "shares",
-      label: "Shares",
-      sortable: true,
-      align: "text-right",
-      icon: Share2,
-      srLabel: "Shares",
-    },
-    {
-      id: "saves",
-      label: "Saves",
-      sortable: true,
-      align: "text-right",
-      icon: Bookmark,
-      srLabel: "Saves",
+      className: "min-w-[100px] text-right",
     },
     {
       id: "engagementRate",
       label: "Engagement",
       sortable: true,
+      sortKey: "engagementRate",
       align: "text-right",
       icon: Activity,
       srLabel: "Engagement rate",
+      className: "min-w-[110px] text-right hidden lg:table-cell",
     },
     {
       id: "velocity",
       label: "Velocity",
       sortable: true,
+      sortKey: "velocity",
       align: "text-right",
       icon: Gauge,
       srLabel: "Velocity",
+      className: "min-w-[110px] text-right hidden 2xl:table-cell",
     },
-    { id: "updatedAt", label: "Last refresh", sortable: true, align: "text-right", className: "min-w-[140px]" },
-    { id: "actions", label: "", sortable: false, className: "w-12" },
+    {
+      id: "updatedAt",
+      label: "Last refresh",
+      sortable: true,
+      sortKey: "updatedAt",
+      align: "text-right",
+      className: "min-w-[130px] text-right",
+    },
+    { id: "actions", label: "", sortable: false, className: "w-12 text-right" },
   ];
 
   return (
@@ -366,9 +348,7 @@ export default function VideosTable({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-white">Videos</h2>
-            <p className="text-sm text-slate-400">
-              Browse and analyse performance metrics for your social media videos
-            </p>
+            <p className="text-sm text-slate-400">Review and compare performance across your tracked videos.</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -377,75 +357,67 @@ export default function VideosTable({
               className="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400"
             >
               <PlayCircle className="h-4 w-4" />
-              Track Video
+              Track video
+            </button>
+            <button
+              type="button"
+              className="hidden h-9 w-9 items-center justify-center rounded-2xl border border-white/10 text-slate-400 transition hover:border-white/30 hover:text-white lg:flex"
+            >
+              <Download className="h-4 w-4" />
             </button>
           </div>
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-              Select accounts
-            </span>
-            <select
-              value={selectedAccount}
-              onChange={(event) => onAccountChange?.(event.target.value)}
-              className="bg-transparent text-sm font-semibold text-white focus:outline-none"
-            >
-              {accountOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-              Select projects
-            </span>
-            <select
-              value={selectedProject}
-              onChange={(event) => onProjectChange?.(event.target.value)}
-              className="bg-transparent text-sm font-semibold text-white focus:outline-none"
-            >
-              {projectOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
-            <CalendarRange className="h-4 w-4 text-slate-400" />
-            <select
-              value={selectedRange}
-              onChange={(event) => onRangeChange?.(event.target.value)}
-              className="bg-transparent text-sm font-semibold text-white focus:outline-none"
-            >
-              {rangeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
             <Search className="h-4 w-4 text-slate-500" />
             <input
               type="search"
-              placeholder="Search videos…"
+              placeholder="Search videos or accounts…"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               className="min-w-[200px] bg-transparent text-sm text-white placeholder:text-slate-500 focus:outline-none"
             />
           </div>
 
+          <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">Accounts</span>
+            <AppDropdown
+              value={selectedAccount}
+              options={accountOptions}
+              onChange={(value) => onAccountChange?.(value)}
+              className="min-h-0 min-w-[180px] border-0 bg-transparent px-0 text-sm font-semibold text-white"
+              panelClassName="mt-2 min-w-[220px]"
+              placeholder="All accounts"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">Projects</span>
+            <AppDropdown
+              value={selectedProject}
+              options={projectOptions}
+              onChange={(value) => onProjectChange?.(value)}
+              className="min-h-0 min-w-[160px] border-0 bg-transparent px-0 text-sm font-semibold text-white"
+              panelClassName="mt-2 min-w-[200px]"
+              placeholder="All projects"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
+            <CalendarRange className="h-4 w-4 text-slate-400" />
+            <AppDropdown
+              value={selectedRange}
+              options={rangeOptions}
+              onChange={(value) => onRangeChange?.(value)}
+              className="min-h-0 min-w-[140px] border-0 bg-transparent px-0 text-sm font-semibold text-white"
+              panelClassName="mt-2 min-w-[200px]"
+              placeholder="30 days"
+            />
+          </div>
+
           <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-3 py-2">
             {platformFilters.map((platformKey) => {
-              const Icon = platformIcons[platformKey] || Globe2;
               const isActive = selectedPlatform === platformKey;
               return (
                 <button
@@ -456,48 +428,31 @@ export default function VideosTable({
                     isActive ? "bg-sky-500/20 text-sky-300" : "text-slate-400 hover:text-sky-200"
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <PlatformImage platform={platformKey} className="h-4 w-4" />
                 </button>
               );
             })}
-          </div>
-
-          <div className="ml-auto hidden items-center gap-2 lg:flex">
-            <button
-              type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 text-slate-400 transition hover:border-white/30 hover:text-white"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 text-slate-400 transition hover:border-white/30 hover:text-white"
-            >
-              <Download className="h-4 w-4" />
-            </button>
           </div>
         </div>
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-white/5 bg-[#0b0c19]">
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed divide-y divide-white/5">
+          <table className="min-w-full divide-y divide-white/5">
             <thead>
               <tr className="text-left text-xs uppercase tracking-[0.28em] text-slate-500">
                 {columns.map((column) => {
-                  const isActiveSort = column.sortable && sortKey === column.id;
+                  const sortKeyValue = column.sortKey ?? column.id;
+                  const isActiveSort = column.sortable && sortKey === sortKeyValue;
                   const headerContent = column.icon ? (
-                    <span
-                      className={`inline-flex items-center ${
-                        column.align === "text-right" ? "justify-end" : "justify-start"
-                      }`}
-                    >
+                    <span className="inline-flex items-center gap-2">
                       <column.icon className="h-3.5 w-3.5" aria-hidden="true" />
                       <span className="sr-only">{column.srLabel || column.label}</span>
                     </span>
                   ) : (
                     column.label
                   );
+
                   return (
                     <th
                       key={column.id}
@@ -507,8 +462,8 @@ export default function VideosTable({
                       {column.sortable ? (
                         <button
                           type="button"
-                          onClick={() => toggleSort(column.id)}
-                          className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-slate-400 hover:text-slate-200 ${
+                          onClick={() => toggleSort(sortKeyValue)}
+                          className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-slate-400 transition hover:text-slate-200 ${
                             column.align === "text-right" ? "justify-end" : ""
                           }`}
                         >
@@ -524,7 +479,7 @@ export default function VideosTable({
                           )}
                         </button>
                       ) : (
-                        headerContent
+                        <span className="text-slate-400">{headerContent}</span>
                       )}
                     </th>
                   );
@@ -540,7 +495,6 @@ export default function VideosTable({
                 </tr>
               ) : (
                 filteredRows.map((item, index) => {
-                  const Icon = platformIcons[item.platform] || Globe2;
                   const accountId = item.raw?._id || `${item.platform}-${index}`;
                   const isActiveMenu = activeMenu === accountId;
 
@@ -563,14 +517,15 @@ export default function VideosTable({
 
                   return (
                     <Fragment key={accountId}>
-                      <tr className="group relative transition hover:bg-white/5">
+                      <tr className="group transition hover:bg-white/5">
                         {columns.map((column) => {
+                          const columnClassName = column.className ? ` ${column.className}` : "";
                           switch (column.id) {
                             case "video":
                               return (
-                                <td key={column.id} className="px-4 py-4 align-top">
-                                  <div className="flex min-w-0 items-center gap-3">
-                                    <div className="relative h-14 w-24 overflow-hidden rounded-2xl border border-white/10 bg-[#131527]">
+                                <td key={column.id} className={`px-4 py-4 align-top${columnClassName}`}>
+                                  <div className="flex min-w-0 items-start gap-3">
+                                    <div className="relative h-16 w-28 flex-shrink-0 overflow-hidden rounded-xl border border-white/10 bg-[#131527]">
                                       {item.thumbnailUrl ? (
                                         <img
                                           src={item.thumbnailUrl}
@@ -583,65 +538,68 @@ export default function VideosTable({
                                         </div>
                                       )}
                                       <span className="absolute bottom-1 left-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70">
-                                        <Icon className="h-3.5 w-3.5 text-white" aria-hidden="true" />
+                                        <PlatformImage platform={item.platform} className="h-3.5 w-3.5" />
                                       </span>
                                     </div>
-                                    <div className="min-w-0 max-w-[220px]">
-                                      <p className="truncate text-sm font-semibold text-white" title={item.title}>
-                                        {item.title}
+                                    <div className="min-w-0 flex-1">
+                                      <p className="mb-1 truncate text-sm font-semibold text-white" title={item.title}>
+                                        {item.title.length > 70 ? `${item.title.substring(0, 70)}…` : item.title}
                                       </p>
-                                      <p className="flex items-center gap-1 truncate text-xs text-slate-500" title={item.accountName}>
-                                        <PlayCircle className="h-3 w-3" aria-hidden="true" />
-                                        {item.accountName}
+                                      <p className="flex items-center gap-1 text-xs text-slate-500" title={item.accountName}>
+                                        <PlayCircle className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+                                        <span className="truncate">{item.accountName}</span>
                                       </p>
                                     </div>
+                                  </div>
+                                </td>
+                              );
+                            case "account":
+                              return (
+                                <td key={column.id} className={`px-4 py-4${columnClassName}`}>
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold text-white">{item.accountName}</p>
+                                    <p className="truncate text-xs text-slate-400">{item.accountHandle ? `@${item.accountHandle}` : "—"}</p>
                                   </div>
                                 </td>
                               );
                             case "platform":
                               return (
-                                <td key={column.id} className="whitespace-nowrap px-4 py-4">
+                                <td key={column.id} className={`px-4 py-4${columnClassName}`}>
                                   <div className="flex items-center gap-2">
-                                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-white">
-                                      <Icon className="h-4 w-4" />
+                                    <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white/5 text-white">
+                                      <PlatformImage platform={item.platform} className="h-4 w-4" />
                                     </span>
-                                    <span className="text-sm font-medium capitalize text-white">
-                                      {item.platform}
-                                    </span>
+                                    <span className="text-sm font-medium capitalize text-white">{item.platform}</span>
                                   </div>
                                 </td>
                               );
                             case "publishedAt":
                               return (
-                                <td key={column.id} className="whitespace-nowrap px-4 py-4 text-sm text-slate-300">
+                                <td key={column.id} className={`px-4 py-4 text-sm text-slate-300${columnClassName}`}>
                                   {formatDateTime(item.publishedAt)}
                                 </td>
                               );
                             case "duration":
                               return (
-                                <td key={column.id} className="whitespace-nowrap px-4 py-4 text-right text-sm text-slate-300">
+                                <td key={column.id} className={`px-4 py-4 text-right text-sm text-slate-300${columnClassName}`}>
                                   {formatDuration(item.durationSeconds)}
                                 </td>
                               );
                             case "views":
-                            case "likes":
-                            case "comments":
-                            case "shares":
-                            case "saves":
                               return (
-                                <td key={column.id} className="whitespace-nowrap px-4 py-4 text-right text-sm font-semibold text-white">
-                                  {formatNumber(item[column.id])}
+                                <td key={column.id} className={`px-4 py-4 text-right text-sm font-semibold text-white${columnClassName}`}>
+                                  {formatNumber(item.views)}
                                 </td>
                               );
                             case "engagementRate":
                               return (
-                                <td key={column.id} className="whitespace-nowrap px-4 py-4 text-right text-sm font-semibold text-emerald-400">
+                                <td key={column.id} className={`px-4 py-4 text-right text-sm font-semibold text-emerald-400${columnClassName}`}>
                                   {formatPercent(item.engagementRate)}
                                 </td>
                               );
                             case "velocity":
                               return (
-                                <td key={column.id} className="whitespace-nowrap px-4 py-4 text-right text-sm">
+                                <td key={column.id} className={`px-4 py-4 text-right text-sm${columnClassName}`}>
                                   <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${velocityTone}`}>
                                     {velocityLabel}
                                   </span>
@@ -649,13 +607,13 @@ export default function VideosTable({
                               );
                             case "updatedAt":
                               return (
-                                <td key={column.id} className="whitespace-nowrap px-4 py-4 text-right text-sm text-slate-300">
+                                <td key={column.id} className={`px-4 py-4 text-right text-sm text-slate-300${columnClassName}`}>
                                   {formatRelativeTime(item.updatedAt)}
                                 </td>
                               );
                             case "actions":
                               return (
-                                <td key={column.id} className="px-4 py-4 text-right">
+                                <td key={column.id} className={`px-4 py-4 text-right${columnClassName}`}>
                                   <div className="relative inline-flex">
                                     <button
                                       type="button"

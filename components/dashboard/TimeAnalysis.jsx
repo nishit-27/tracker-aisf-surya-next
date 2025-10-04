@@ -15,6 +15,7 @@ import {
   Bar,
   BarChart,
 } from "recharts";
+import AppDropdown from "../ui/AppDropdown";
 
 function formatNumber(value) {
   if (value === undefined || value === null) return "—";
@@ -48,6 +49,12 @@ const timePeriods = [
   { key: "90d", label: "Last 90 days", days: 90 },
   { key: "365d", label: "Last year", days: 365 },
   { key: "all", label: "All time", days: null },
+];
+
+const viewModeOptions = [
+  { value: "line", label: "Line Chart" },
+  { value: "area", label: "Area Chart" },
+  { value: "bar", label: "Bar Chart" },
 ];
 
 export default function TimeAnalysis({ accounts, selectedAccount, selectedPlatform }) {
@@ -140,27 +147,25 @@ export default function TimeAnalysis({ accounts, selectedAccount, selectedPlatfo
         </div>
         
         <div className="flex gap-2">
-          <select
+          <AppDropdown
             value={timePeriod}
-            onChange={(e) => setTimePeriod(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-          >
-            {timePeriods.map(period => (
-              <option key={period.key} value={period.key}>
-                {period.label}
-              </option>
-            ))}
-          </select>
-          
-          <select
+            options={timePeriods}
+            optionLabel="label"
+            optionValue="key"
+            onChange={setTimePeriod}
+            className="min-w-[160px]"
+            panelClassName="mt-2 min-w-[220px]"
+            placeholder=""
+          />
+
+          <AppDropdown
             value={viewMode}
-            onChange={(e) => setViewMode(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-          >
-            <option value="line">Line Chart</option>
-            <option value="area">Area Chart</option>
-            <option value="bar">Bar Chart</option>
-          </select>
+            options={viewModeOptions}
+            onChange={setViewMode}
+            className="min-w-[160px]"
+            panelClassName="mt-2 min-w-[200px]"
+            placeholder=""
+          />
         </div>
       </div>
 

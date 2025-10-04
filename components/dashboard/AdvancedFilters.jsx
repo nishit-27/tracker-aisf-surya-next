@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import AppDropdown from "../ui/AppDropdown";
 
 const dateRanges = [
   { value: "7d", label: "Last 7 days", days: 7 },
@@ -60,6 +61,18 @@ export default function AdvancedFilters({
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const platformOptions = useMemo(
+    () =>
+      platforms.map((platform) => ({
+        value: platform,
+        label:
+          platform === "all"
+            ? "All Platforms"
+            : platform.charAt(0).toUpperCase() + platform.slice(1),
+      })),
+    [platforms],
+  );
+
   const accountOptions = useMemo(() => {
     const options = [
       { value: "all", label: "All Accounts" },
@@ -105,70 +118,56 @@ export default function AdvancedFilters({
           <label className="text-xs font-medium uppercase tracking-wider text-slate-400">
             Platform
           </label>
-          <select
+          <AppDropdown
             value={selectedPlatform}
-            onChange={(e) => onPlatformChange(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-          >
-            {platforms.map((platform) => (
-              <option key={platform} value={platform}>
-                {platform === "all"
-                  ? "All Platforms"
-                  : platform.charAt(0).toUpperCase() + platform.slice(1)}
-              </option>
-            ))}
-          </select>
+            options={platformOptions}
+            onChange={onPlatformChange}
+            className="w-full"
+            panelClassName="mt-2 min-w-[240px]"
+            placeholder=""
+          />
         </div>
 
         <div className="space-y-2">
           <label className="text-xs font-medium uppercase tracking-wider text-slate-400">
             Account
           </label>
-          <select
+          <AppDropdown
             value={selectedAccount}
-            onChange={(e) => onAccountChange(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-          >
-            {accountOptions.map((account) => (
-              <option key={account.value} value={account.value}>
-                {account.label}
-              </option>
-            ))}
-          </select>
+            options={accountOptions}
+            onChange={onAccountChange}
+            className="w-full"
+            panelClassName="mt-2 min-w-[260px]"
+            placeholder=""
+          />
         </div>
 
         <div className="space-y-2">
           <label className="text-xs font-medium uppercase tracking-wider text-slate-400">
             Date Range
           </label>
-          <select
+          <AppDropdown
             value={selectedRange}
-            onChange={(e) => onRangeChange(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-          >
-            {dateRanges.map((range) => (
-              <option key={range.value} value={range.value}>
-                {range.label}
-              </option>
-            ))}
-          </select>
+            options={dateRanges}
+            onChange={onRangeChange}
+            className="w-full"
+            panelClassName="mt-2 min-w-[240px]"
+            placeholder=""
+          />
         </div>
 
         <div className="space-y-2">
           <label className="text-xs font-medium uppercase tracking-wider text-slate-400">
             Sort Media By
           </label>
-          <select
+          <AppDropdown
             value={mediaSort}
-            onChange={(e) => onMediaSortChange(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-          >
-            {sortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            options={sortOptions}
+            onChange={onMediaSortChange}
+            className="w-full"
+            panelClassName="mt-2 min-w-[240px]"
+            placeholder=""
+          />
         </div>
       </div>
 
@@ -180,17 +179,14 @@ export default function AdvancedFilters({
             <label className="text-xs font-medium uppercase tracking-wider text-slate-400">
               Comparison Metric
             </label>
-            <select
+            <AppDropdown
               value={comparisonMetric}
-              onChange={(e) => onComparisonMetricChange(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-            >
-              {comparisonMetrics.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              options={comparisonMetrics}
+              onChange={onComparisonMetricChange}
+              className="w-full"
+              panelClassName="mt-2 min-w-[260px]"
+              placeholder=""
+            />
           </div>
 
           {/* Account Selection for Comparison */}
@@ -228,17 +224,14 @@ export default function AdvancedFilters({
             <label className="text-xs font-medium uppercase tracking-wider text-slate-400">
               Engagement Rate Filter
             </label>
-            <select
+            <AppDropdown
               value={engagementFilter}
-              onChange={(e) => onEngagementFilterChange(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-            >
-              {engagementRanges.map((range) => (
-                <option key={range.value} value={range.value}>
-                  {range.label}
-                </option>
-              ))}
-            </select>
+              options={engagementRanges}
+              onChange={onEngagementFilterChange}
+              className="w-full"
+              panelClassName="mt-2 min-w-[260px]"
+              placeholder=""
+            />
           </div>
 
           {/* Date Filter */}

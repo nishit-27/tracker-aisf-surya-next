@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import AccountAnalysisModal from "./AccountAnalysisModal";
+import AppDropdown from "../ui/AppDropdown";
 
 function formatNumber(value) {
   if (value === undefined || value === null) {
@@ -44,6 +45,16 @@ export default function FullScreenAccountsGrid({
 
   // Get unique platforms from accounts
   const availablePlatforms = [...new Set(accounts.map(account => account.platform).filter(Boolean))];
+  const platformOptions = useMemo(
+    () => [
+      { value: "all", label: "All Platforms" },
+      ...availablePlatforms.map((platform) => ({
+        value: platform,
+        label: platform.charAt(0).toUpperCase() + platform.slice(1),
+      })),
+    ],
+    [availablePlatforms],
+  );
   
   // Filter accounts based on platform
   const filteredAccounts = platformFilter === "all" 
@@ -129,20 +140,16 @@ export default function FullScreenAccountsGrid({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h3 className="text-lg font-semibold text-white">All Accounts</h3>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#111327] px-3 py-2 focus-within:border-sky-500 focus-within:shadow-[0_0_0_1px_rgba(14,165,233,0.35)]">
               <span className="text-sm text-slate-400">Platform:</span>
-              <select
+              <AppDropdown
                 value={platformFilter}
-                onChange={(e) => setPlatformFilter(e.target.value)}
-                className="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
-              >
-                <option value="all">All Platforms</option>
-                {availablePlatforms.map((platform) => (
-                  <option key={platform} value={platform}>
-                    {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                  </option>
-                ))}
-              </select>
+                options={platformOptions}
+                onChange={setPlatformFilter}
+                className="min-h-0 min-w-[160px] border-0 bg-transparent px-0 text-sm"
+                panelClassName="mt-2 min-w-[200px]"
+                placeholder=""
+              />
             </div>
           </div>
           <div className="text-sm text-slate-400">

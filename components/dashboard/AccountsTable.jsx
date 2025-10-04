@@ -7,23 +7,14 @@ import {
   ArrowUpDown,
   CalendarClock,
   CheckCircle2,
-  Globe2,
-  Instagram,
   MoreHorizontal,
-  Music2,
   RefreshCw,
   Search,
   Trash2,
-  Youtube,
 } from "lucide-react";
 import AccountAnalysisModal from "./AccountAnalysisModal";
-
-const platformIcons = {
-  all: Globe2,
-  instagram: Instagram,
-  youtube: Youtube,
-  tiktok: Music2,
-};
+import AppDropdown from "../ui/AppDropdown";
+import { PlatformImage } from "../../lib/utils/platformImages";
 
 function formatNumber(value) {
   if (value === undefined || value === null) {
@@ -345,22 +336,18 @@ export default function AccountsTable({
             <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">
               Select projects
             </span>
-            <select
+            <AppDropdown
               value={selectedProject}
-              onChange={(event) => setSelectedProject(event.target.value)}
-              className="bg-transparent text-sm font-semibold text-white focus:outline-none"
-            >
-              {projectOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              options={projectOptions}
+              onChange={setSelectedProject}
+              className="min-h-0 min-w-[160px] border-0 bg-transparent px-0 text-sm font-semibold text-white"
+              panelClassName="mt-2 min-w-[220px]"
+              placeholder=""
+            />
           </div>
 
           <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-3 py-2">
             {platformFilters.map((platformKey) => {
-              const Icon = platformIcons[platformKey] || Globe2;
               const isActive = selectedPlatform === platformKey;
               return (
                 <button
@@ -371,7 +358,7 @@ export default function AccountsTable({
                     isActive ? "bg-sky-500/20 text-sky-300" : "text-slate-400 hover:text-sky-200"
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <PlatformImage platform={platformKey} className="h-4 w-4" />
                 </button>
               );
             })}
@@ -426,7 +413,6 @@ export default function AccountsTable({
                 </tr>
               ) : (
                 filteredRows.map((entry) => {
-                  const Icon = platformIcons[entry.platform] || Globe2;
                   const accountId = entry.raw._id;
                   const isRefreshing = refreshingId === accountId;
                   const isDeleting = deletingId === accountId;
@@ -460,7 +446,7 @@ export default function AccountsTable({
                               <td key={column.id} className="whitespace-nowrap px-4 py-4">
                                 <div className="flex items-center gap-2">
                                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-white">
-                                    <Icon className="h-4 w-4" />
+                                    <PlatformImage platform={entry.platform} className="h-4 w-4" />
                                   </span>
                                   <span className="text-sm font-medium capitalize text-white">
                                     {entry.platform}
