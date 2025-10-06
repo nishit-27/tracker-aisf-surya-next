@@ -996,7 +996,7 @@ export default function DashboardClient({ data, platforms }) {
       case "accounts":
         return (
           <AccountsTable
-            accounts={analyticsData.accounts}
+            accounts={filteredAccounts}
             media={analyticsData.media}
             selectedPlatform={selectedPlatform}
             onPlatformChange={setSelectedPlatform}
