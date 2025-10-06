@@ -314,25 +314,6 @@ function StatCard({ label, value, delta, icon: Icon, accent, description }) {
   );
 }
 
-function SetupCard({ label, value, cta = "Set up" }) {
-  return (
-    <div className="flex h-full min-h-[180px] flex-col justify-between rounded-3xl border border-dashed border-white/10 bg-[#101125] px-6 py-6">
-      <div className="flex flex-col gap-4">
-        <span className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
-          {label}
-        </span>
-        <p className="text-3xl font-semibold text-white">{value}</p>
-      </div>
-      <button
-        type="button"
-        className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 px-4 py-2 text-xs font-semibold text-white transition hover:border-white/30 hover:text-white/90"
-      >
-        <Plus className="h-3 w-3" />
-        {cta}
-      </button>
-    </div>
-  );
-}
 
 export default function DashboardClient({ data, platforms }) {
   const [analyticsData, setAnalyticsData] = useState(data);
@@ -350,7 +331,8 @@ export default function DashboardClient({ data, platforms }) {
   const [primaryMetric, setPrimaryMetric] = useState("views");
   const [trackingRange, setTrackingRange] = useState("90d");
   const mainScrollRef = useRef(null);
-  const [isToolbarFloating, setIsToolbarFloating] = useState(false);
+  const [accountSearchTerm, setAccountSearchTerm] = useState("");
+  const [videoSearchTerm, setVideoSearchTerm] = useState("");
 
   const platformFilters = useMemo(() => {
     const unique = Array.from(new Set([...(platforms ?? [])]));
@@ -735,13 +717,6 @@ export default function DashboardClient({ data, platforms }) {
     ]
   );
 
-  const setupCards = useMemo(
-    () => [
-      { id: "revenue", label: "App Revenue", value: "$0" },
-      { id: "installs", label: "App Installs", value: "0" },
-    ],
-    []
-  );
 
   const activeNavItem = useMemo(() => {
     for (const section of sidebarNavigation) {
@@ -855,115 +830,7 @@ export default function DashboardClient({ data, platforms }) {
     });
   }, []);
 
-  useEffect(() => {
-    const scrollElement = mainScrollRef.current;
-    if (!scrollElement) {
-      return;
-    }
 
-    const handleScroll = () => {
-      setIsToolbarFloating(scrollElement.scrollTop > 24);
-    };
-
-    handleScroll();
-    scrollElement.addEventListener("scroll", handleScroll, { passive: true });
-    return () => scrollElement.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const toolbarWrapperClass = isToolbarFloating
-    ? "fixed left-0 right-0 top-[96px] z-40 px-4 sm:px-6 lg:px-8"
-    : "sticky top-4 z-30";
-
-  const toolbarContainerClass = isToolbarFloating
-    ? "rounded-3xl border border-white/10 bg-[#0c0d1f]/95 px-4 py-3 backdrop-blur shadow-[0_20px_45px_rgba(8,11,24,0.55)]"
-    : "rounded-3xl border border-white/10 bg-[#0c0d1f]/90 px-4 py-3 backdrop-blur";
-  const toolbarSpacer = isToolbarFloating ? <div className="h-[96px]" /> : null;
-
-  const filterToolbar = (
-    <>
-      <div className={toolbarWrapperClass}>
-        <div className={toolbarContainerClass}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Accounts Filter */}
-            <div className="flex min-h-[56px] flex-col gap-1 rounded-xl border border-white/10 bg-[#111327] px-3 py-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-                Accounts
-              </span>
-              <AppDropdown
-                value={selectedAccount}
-                options={accountOptions}
-                onChange={setSelectedAccount}
-                className="min-h-0 min-w-0 w-full border-0 bg-transparent px-0 text-sm font-semibold text-white"
-                panelClassName="mt-2 min-w-[200px]"
-                placeholder=""
-              />
-            </div>
-
-            {/* Projects Filter */}
-            <div className="flex min-h-[56px] flex-col gap-1 rounded-xl border border-white/10 bg-[#111327] px-3 py-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-                Projects
-              </span>
-              <AppDropdown
-                value={selectedProject}
-                options={projectOptions}
-                onChange={setSelectedProject}
-                className="min-h-0 min-w-0 w-full border-0 bg-transparent px-0 text-sm font-semibold text-white"
-                panelClassName="mt-2 min-w-[200px]"
-                placeholder=""
-              />
-            </div>
-
-            {/* Platforms Filter */}
-            <div className="flex min-h-[56px] flex-col gap-1 rounded-xl border border-white/10 bg-[#111327] px-3 py-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-                Platforms
-              </span>
-              <div className="flex flex-wrap gap-1">
-                {platformFilters.map((platformKey) => {
-                  const isActive = selectedPlatform === platformKey;
-                  return (
-                    <button
-                      key={platformKey}
-                      type="button"
-                      onClick={() => setSelectedPlatform(platformKey)}
-                      className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${isActive
-                          ? "bg-sky-500/20 text-sky-300"
-                          : "text-slate-400 hover:text-sky-200"
-                        }`}
-                    >
-                      <PlatformImage platform={platformKey} className="h-3 w-3" />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Date Range Filter */}
-            <div className="flex min-h-[56px] flex-col gap-1 rounded-xl border border-white/10 bg-[#111327] px-3 py-2">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-                Date Range
-              </span>
-              <div className="flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/5 text-slate-300">
-                  <CalendarRange className="h-3 w-3" />
-                </div>
-                <AppDropdown
-                  value={selectedRange}
-                  options={rangeOptions}
-                  onChange={setSelectedRange}
-                  className="min-h-0 min-w-0 flex-1 border-0 bg-transparent px-0 text-sm font-semibold text-white"
-                  panelClassName="mt-2 min-w-[200px]"
-                  placeholder=""
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      {toolbarSpacer}
-    </>
-  );
 
   function renderContent() {
     switch (activeTab) {
@@ -974,11 +841,6 @@ export default function DashboardClient({ data, platforms }) {
               <div className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {statCards.map((card) => (
                   <StatCard key={card.id} {...card} />
-                ))}
-              </div>
-              <div className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-2">
-                {setupCards.map((card) => (
-                  <SetupCard key={card.id} label={card.label} value={card.value} />
                 ))}
               </div>
             </section>
@@ -1142,6 +1004,7 @@ export default function DashboardClient({ data, platforms }) {
             onAccountRefreshed={refreshAccount}
             onAddAccount={() => setIsModalOpen(true)}
             platformFilters={platformFilters}
+            searchTerm={accountSearchTerm}
           />
         );
       case "videos":
@@ -1160,6 +1023,7 @@ export default function DashboardClient({ data, platforms }) {
             onProjectChange={setSelectedProject}
             onTrackVideo={() => setIsModalOpen(true)}
             platformFilters={platformFilters}
+            searchTerm={videoSearchTerm}
           />
         );
       case "tracking":
@@ -1324,33 +1188,17 @@ export default function DashboardClient({ data, platforms }) {
 
   return (
     <div className="flex min-h-screen max-w-screen w-screen bg-[#05060f] text-white overflow-hidden">
-      {activeTab !== "tracking" && <FloatingNavbar navItems={floatingNavItems} />}
-      <aside className="hidden w-[240px] flex-col border-r border-white/5 bg-[#070714] px-4 py-6 lg:flex">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-300">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">Demo Organization</p>
-              <p className="text-xs text-slate-400">Ultra Plan</p>
-            </div>
+      <aside className="hidden w-[80px] flex-col border-r border-white/5 bg-[#070714] px-3 py-6 lg:flex fixed left-0 top-0 h-screen z-40">
+        <div className="flex flex-col items-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-300">
+            <Sparkles className="h-5 w-5" />
           </div>
-          <button
-            type="button"
-            className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs text-slate-300 transition hover:border-white/20 hover:text-white"
-          >
-            Upgrade plan
-          </button>
         </div>
 
-        <nav className="mt-8 space-y-8">
+        <nav className="mt-8 space-y-2">
           {sidebarNavigation.map((section) => (
             <div key={section.title}>
-              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">
-                {section.title}
-              </p>
-              <div className="mt-4 space-y-1">
+              <div className="space-y-2">
                 {section.items.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
@@ -1359,13 +1207,13 @@ export default function DashboardClient({ data, platforms }) {
                       key={item.id}
                       type="button"
                       onClick={() => setActiveTab(item.id)}
-                      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-2 text-sm transition ${isActive
+                      className={`flex w-full items-center justify-center rounded-2xl p-3 transition ${isActive
                           ? "bg-sky-500/20 text-white"
                           : "text-slate-400 hover:bg-white/5 hover:text-white"
                         }`}
+                      title={item.label}
                     >
-                      <Icon className="h-4 w-4" />
-                      <span>{item.label}</span>
+                      <Icon className="h-5 w-5" />
                     </button>
                   );
                 })}
@@ -1377,55 +1225,30 @@ export default function DashboardClient({ data, platforms }) {
         <div className="mt-auto" />
       </aside>
 
-      <div className="flex flex-1 overflow-auto flex-col min-w-0">
-        <header className="border-b border-white/5 bg-[#090a18]">
-          <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.4em] text-slate-500">
-                {activeNavItem?.section || "Analytics"}
-              </p>
-              <div className="mt-2 flex items-center gap-2 text-sm text-slate-400">
-                <span>{activeNavItem?.section || "Analytics"}</span>
-                <span className="text-slate-600">/</span>
-                <span className="text-white">{activeNavItem?.label || "Overview"}</span>
-              </div>
-              <h1 className="mt-2 text-3xl font-semibold text-white">
-                {activeNavItem?.label || "Overview"}
-              </h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400"
-              >
-                <Plus className="h-4 w-4" />
-                Add account
-              </button>
-              <button
-                type="button"
-                onClick={refreshAnalytics}
-                disabled={isRefreshing}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                {isRefreshing ? "Refreshing" : "Refresh"}
-              </button>
-            </div>
-          </div>
-        </header>
-
+      <div className="flex flex-1 overflow-auto flex-col min-w-0 ml-[80px]">
         <main ref={mainScrollRef} className="flex-1 overflow-y-auto bg-[#05060f]">
           <div className="px-4 py-6 sm:px-6 lg:px-8">
+            {activeTab !== "tracking" && (
+              <FloatingNavbar 
+                navItems={floatingNavItems} 
+                activeNavItem={activeNavItem}
+                onAddAccount={() => setIsModalOpen(true)}
+                onRefresh={refreshAnalytics}
+                isRefreshing={isRefreshing}
+                accountSearchTerm={accountSearchTerm}
+                setAccountSearchTerm={setAccountSearchTerm}
+                videoSearchTerm={videoSearchTerm}
+                setVideoSearchTerm={setVideoSearchTerm}
+              />
+            )}
             {refreshError ? (
               <div className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
                 {refreshError}
               </div>
             ) : null}
 
-            {activeTab !== "accounts" && activeTab !== "videos" && activeTab !== "tracking" && filterToolbar}
 
-            <div className="mt-6">{renderContent()}</div>
+            <div className="mt-6 pt-20">{renderContent()}</div>
           </div>
         </main>
       </div>

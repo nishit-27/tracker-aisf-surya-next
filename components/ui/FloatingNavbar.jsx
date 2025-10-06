@@ -1,33 +1,19 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Search, Plus, RefreshCw } from "lucide-react";
 import Image from "next/image";
 
-const FloatingNavbar = ({ navItems, className = "" }) => {
+const FloatingNavbar = ({ navItems, className = "", activeNavItem, onAddAccount, onRefresh, isRefreshing, accountSearchTerm, setAccountSearchTerm, videoSearchTerm, setVideoSearchTerm }) => {
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [searchTerms, setSearchTerms] = useState({});
   const dropdownRefs = useRef({});
   const inputRefs = useRef({});
 
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      // Show navbar when scrolling up, hide when scrolling down
-      if (currentScrollY < lastScrollY || currentScrollY < 100) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
-      
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
+    // Keep navbar always visible since it's now fixed positioned
+    setIsVisible(true);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -39,8 +25,10 @@ const FloatingNavbar = ({ navItems, className = "" }) => {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    if (typeof document !== 'undefined') {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
   }, [activeDropdown]);
 
   const handleInputClick = (index, item) => {
@@ -96,10 +84,46 @@ const FloatingNavbar = ({ navItems, className = "" }) => {
 
         return (
           <nav
-            className={`fixed left-1/2 top-4 z-50 flex max-w-fit -translate-x-1/2 items-center justify-center space-x-2 rounded-xl border border-white/10 bg-black/80 px-3 py-2 backdrop-blur shadow-[0_20px_45px_rgba(8,11,24,0.55)] transition-all duration-300 sm:space-x-3 sm:px-6 sm:py-3 sm:top-8 ${
+            className={`fixed top-4 left-[calc(40px+50%)] transform -translate-x-1/2 z-50 flex max-w-7xl w-full items-center space-x-4 rounded-xl border border-white/10 bg-black/80 px-4 py-3 backdrop-blur shadow-[0_20px_45px_rgba(8,11,24,0.55)] transition-all duration-300 sm:px-6 sm:py-4 ${
               isVisible ? "translate-y-0 opacity-100" : "-translate-y-20 opacity-0"
             } ${className}`}
           >
+            {/* Left Section - Title */}
+            <div className="flex items-center space-x-3 flex-shrink-0">
+              <h1 className="text-lg font-semibold text-white">
+                {activeNavItem?.label || "Overview"}
+              </h1>
+            </div>
+
+            {/* Center Section - Filters and Search */}
+            <div className="flex items-center space-x-2 flex-1 justify-center">
+              {/* Account Search - Only show in accounts section */}
+              {activeNavItem?.id === "accounts" && (
+                <div className="flex items-center space-x-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2">
+                  <Search className="h-4 w-4 text-neutral-500" />
+                  <input
+                    type="text"
+                    placeholder="Search accounts..."
+                    value={accountSearchTerm || ""}
+                    onChange={(e) => setAccountSearchTerm(e.target.value)}
+                    className="bg-transparent outline-none text-sm text-white placeholder-neutral-500 min-w-[120px] sm:min-w-[150px]"
+                  />
+                </div>
+              )}
+              
+              {/* Video Search - Only show in videos section */}
+              {activeNavItem?.id === "videos" && (
+                <div className="flex items-center space-x-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2">
+                  <Search className="h-4 w-4 text-neutral-500" />
+                  <input
+                    type="text"
+                    placeholder="Search videos..."
+                    value={videoSearchTerm || ""}
+                    onChange={(e) => setVideoSearchTerm(e.target.value)}
+                    className="bg-transparent outline-none text-sm text-white placeholder-neutral-500 min-w-[120px] sm:min-w-[150px]"
+                  />
+                </div>
+              )}
       {navItems.map((item, index) => (
         <div
           key={index}
@@ -209,7 +233,29 @@ const FloatingNavbar = ({ navItems, className = "" }) => {
           )}
         </div>
       ))}
-    </nav>
+            </div>
+
+            {/* Right Section - Action Buttons */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={onAddAccount}
+                className="inline-flex items-center gap-2 rounded-full bg-sky-500 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-sky-400"
+              >
+                <Plus className="h-3 w-3" />
+                Add account
+              </button>
+              <button
+                type="button"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RefreshCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
+                {isRefreshing ? "Refreshing" : "Refresh"}
+              </button>
+            </div>
+          </nav>
   );
 };
 

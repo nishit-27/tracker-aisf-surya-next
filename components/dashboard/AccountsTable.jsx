@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   MoreHorizontal,
   RefreshCw,
-  Search,
   Trash2,
 } from "lucide-react";
 import AccountAnalysisModal from "./AccountAnalysisModal";
@@ -97,9 +96,8 @@ export default function AccountsTable({
   onAccountRefreshed,
   onAddAccount,
   platformFilters = ["all"],
+  searchTerm = "",
 }) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedProject, setSelectedProject] = useState("all");
   const [sortKey, setSortKey] = useState("followers");
   const [sortDirection, setSortDirection] = useState("desc");
   const [activeMenu, setActiveMenu] = useState(null);
@@ -107,13 +105,6 @@ export default function AccountsTable({
   const [refreshingId, setRefreshingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [errors, setErrors] = useState({});
-
-  const projectOptions = [
-    { value: "all", label: "All projects" },
-    { value: "launch", label: "Launch Campaign" },
-    { value: "ugc", label: "UGC Collaboration" },
-    { value: "seasonal", label: "Seasonal Push" },
-  ];
 
   const mediaByAccount = useMemo(() => {
     const map = new Map();
@@ -300,72 +291,6 @@ export default function AccountsTable({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-white/5 bg-[#101125] p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold text-white">Accounts</h2>
-            <p className="text-sm text-slate-400">
-              View and analyse performance metrics for your tracked social media accounts
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onAddAccount}
-              className="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              Track Account
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
-            <Search className="h-4 w-4 text-slate-500" />
-            <input
-              type="search"
-              placeholder="Search by name…"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              className="min-w-[200px] bg-transparent text-sm text-white placeholder:text-slate-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-              Select projects
-            </span>
-            <AppDropdown
-              value={selectedProject}
-              options={projectOptions}
-              onChange={setSelectedProject}
-              className="min-h-0 min-w-[160px] border-0 bg-transparent px-0 text-sm font-semibold text-white"
-              panelClassName="mt-2 min-w-[220px]"
-              placeholder=""
-            />
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-3 py-2">
-            {platformFilters.map((platformKey) => {
-              const isActive = selectedPlatform === platformKey;
-              return (
-                <button
-                  key={platformKey}
-                  type="button"
-                  onClick={() => onPlatformChange?.(platformKey)}
-                  className={`flex h-9 w-9 items-center justify-center rounded-2xl transition ${
-                    isActive ? "bg-sky-500/20 text-sky-300" : "text-slate-400 hover:text-sky-200"
-                  }`}
-                >
-                  <PlatformImage platform={platformKey} className="h-4 w-4" />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
       <div className="overflow-hidden rounded-3xl border border-white/5 bg-[#0b0c19]">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-white/5">

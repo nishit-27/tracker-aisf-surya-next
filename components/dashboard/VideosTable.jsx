@@ -145,8 +145,8 @@ export default function VideosTable({
   onProjectChange,
   onTrackVideo,
   platformFilters = ["all"],
+  searchTerm = "",
 }) {
-  const [searchTerm, setSearchTerm] = useState("");
   const [sortKey, setSortKey] = useState("views");
   const [sortDirection, setSortDirection] = useState("desc");
   const [activeMenu, setActiveMenu] = useState(null);
@@ -344,98 +344,6 @@ export default function VideosTable({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-white/5 bg-[#101125] p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold text-white">Videos</h2>
-            <p className="text-sm text-slate-400">Review and compare performance across your tracked videos.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onTrackVideo}
-              className="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400"
-            >
-              <PlayCircle className="h-4 w-4" />
-              Track video
-            </button>
-            <button
-              type="button"
-              className="hidden h-9 w-9 items-center justify-center rounded-2xl border border-white/10 text-slate-400 transition hover:border-white/30 hover:text-white lg:flex"
-            >
-              <Download className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
-            <Search className="h-4 w-4 text-slate-500" />
-            <input
-              type="search"
-              placeholder="Search videos or accounts…"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              className="min-w-[200px] bg-transparent text-sm text-white placeholder:text-slate-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">Accounts</span>
-            <AppDropdown
-              value={selectedAccount}
-              options={accountOptions}
-              onChange={(value) => onAccountChange?.(value)}
-              className="min-h-0 min-w-[180px] border-0 bg-transparent px-0 text-sm font-semibold text-white"
-              panelClassName="mt-2 min-w-[220px]"
-              placeholder="All accounts"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">Projects</span>
-            <AppDropdown
-              value={selectedProject}
-              options={projectOptions}
-              onChange={(value) => onProjectChange?.(value)}
-              className="min-h-0 min-w-[160px] border-0 bg-transparent px-0 text-sm font-semibold text-white"
-              panelClassName="mt-2 min-w-[200px]"
-              placeholder="All projects"
-            />
-          </div>
-
-          <div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-[#111327] px-4 py-2">
-            <CalendarRange className="h-4 w-4 text-slate-400" />
-            <AppDropdown
-              value={selectedRange}
-              options={rangeOptions}
-              onChange={(value) => onRangeChange?.(value)}
-              className="min-h-0 min-w-[140px] border-0 bg-transparent px-0 text-sm font-semibold text-white"
-              panelClassName="mt-2 min-w-[200px]"
-              placeholder="30 days"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-[#111327] px-3 py-2">
-            {platformFilters.map((platformKey) => {
-              const isActive = selectedPlatform === platformKey;
-              return (
-                <button
-                  key={platformKey}
-                  type="button"
-                  onClick={() => onPlatformChange?.(platformKey)}
-                  className={`flex h-9 w-9 items-center justify-center rounded-2xl transition ${
-                    isActive ? "bg-sky-500/20 text-sky-300" : "text-slate-400 hover:text-sky-200"
-                  }`}
-                >
-                  <PlatformImage platform={platformKey} className="h-4 w-4" />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
       <div className="overflow-hidden rounded-3xl border border-white/5 bg-[#0b0c19]">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-white/5">
