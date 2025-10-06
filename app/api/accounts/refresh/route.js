@@ -10,7 +10,7 @@ export async function POST(request) {
 
     // Add timeout to the entire refresh operation
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Refresh operation timeout after 120 seconds')), 120000)
+      setTimeout(() => reject(new Error('Refresh operation timeout after 5 minutes')), 300000)
     );
     
     const result = await Promise.race([
