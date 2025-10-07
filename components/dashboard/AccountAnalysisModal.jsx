@@ -619,7 +619,21 @@ export default function AccountAnalysisModal({ account, isOpen, onClose }) {
                                 <td className="px-4 py-3 text-sm text-slate-200">
                                   {group.topPost ? (
                                     <div className="flex flex-col">
-                                      <span className="font-medium text-white truncate max-w-[240px]">{group.topPost.title || group.topPost.externalId || "Untitled"}</span>
+                                      {group.topPost.url ? (
+                                        <a
+                                          href={group.topPost.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="font-medium text-white transition-colors hover:text-sky-300 truncate max-w-[240px]"
+                                          title={group.topPost.title || group.topPost.externalId || "Untitled"}
+                                        >
+                                          {group.topPost.title || group.topPost.externalId || "Untitled"}
+                                        </a>
+                                      ) : (
+                                        <span className="font-medium text-white truncate max-w-[240px]">
+                                          {group.topPost.title || group.topPost.externalId || "Untitled"}
+                                        </span>
+                                      )}
                                       <span className="text-xs text-slate-400">
                                         {formatNumber(group.topPost.metrics?.views)} views • {Number.isFinite(group.topPost.viewShare)
                                           ? `${group.topPost.viewShare.toFixed(1)}%`
@@ -670,15 +684,28 @@ export default function AccountAnalysisModal({ account, isOpen, onClose }) {
                           </div>
 
                           {group.topPost ? (
-                            <div className="flex flex-col gap-2 border-b border-slate-800/80 bg-sky-900/10 px-4 py-3 text-xs text-sky-100 md:flex-row md:items-center md:justify-between">
-                              <div>
-                                <span className="font-semibold text-sky-200">Top driver:</span>{" "}
-                                <span className="text-sky-100">{group.topPost.title || group.topPost.externalId || "Untitled"}</span>
-                                <span className="text-slate-400">
-                                  {" "}• {formatNumber(group.topPost.metrics?.views)} views
-                                  {Number.isFinite(group.topPost.viewShare)
-                                    ? ` (${group.topPost.viewShare.toFixed(1)}% of the day)`
-                                    : ""}
+                              <div className="flex flex-col gap-2 border-b border-slate-800/80 bg-sky-900/10 px-4 py-3 text-xs text-sky-100 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                  <span className="font-semibold text-sky-200">Top driver:</span>{" "}
+                                  {group.topPost.url ? (
+                                    <a
+                                      href={group.topPost.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-sky-100 underline-offset-2 hover:underline"
+                                    >
+                                      {group.topPost.title || group.topPost.externalId || "Untitled"}
+                                    </a>
+                                  ) : (
+                                    <span className="text-sky-100">
+                                      {group.topPost.title || group.topPost.externalId || "Untitled"}
+                                    </span>
+                                  )}
+                                  <span className="text-slate-400">
+                                    {" "}• {formatNumber(group.topPost.metrics?.views)} views
+                                    {Number.isFinite(group.topPost.viewShare)
+                                      ? ` (${group.topPost.viewShare.toFixed(1)}% of the day)`
+                                      : ""}
                                 </span>
                               </div>
                               {group.topPost.url ? (
@@ -713,9 +740,21 @@ export default function AccountAnalysisModal({ account, isOpen, onClose }) {
                                       />
                                     ) : null}
                                     <div>
-                                      <div className="text-sm font-semibold text-white max-w-[340px] truncate">
-                                        {post.title || post.externalId || "Untitled"}
-                                      </div>
+                                      {post.url ? (
+                                        <a
+                                          href={post.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="block max-w-[340px] truncate text-sm font-semibold text-white transition-colors hover:text-sky-300"
+                                          title={post.title || post.externalId || "Untitled"}
+                                        >
+                                          {post.title || post.externalId || "Untitled"}
+                                        </a>
+                                      ) : (
+                                        <div className="text-sm font-semibold text-white max-w-[340px] truncate">
+                                          {post.title || post.externalId || "Untitled"}
+                                        </div>
+                                      )}
                                       <div className="flex items-center gap-2 text-xs text-slate-400">
                                         <span>{formatDate(post.publishedAt)}</span>
                                         {post.url && (
@@ -818,7 +857,19 @@ export default function AccountAnalysisModal({ account, isOpen, onClose }) {
                             <div className="flex items-start justify-between">
                               <div className="flex-1 min-w-0">
                                 <h4 className="text-lg font-semibold text-white truncate">
-                                  {post.title || "Untitled Post"}
+                                  {post.url ? (
+                                    <a
+                                      href={post.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="transition-colors hover:text-sky-300"
+                                      title={post.title || "Untitled Post"}
+                                    >
+                                      {post.title || "Untitled Post"}
+                                    </a>
+                                  ) : (
+                                    post.title || "Untitled Post"
+                                  )}
                                 </h4>
                                 <p className="text-sm text-slate-400 mt-1">
                                   {formatDate(post.publishedAt)} • {post.platform?.charAt(0).toUpperCase() + post.platform?.slice(1)}

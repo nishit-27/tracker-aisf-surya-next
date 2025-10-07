@@ -562,9 +562,21 @@ export default function CrossPlatformContentComparison({ accounts = [], media = 
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-200">
                           <div className="flex flex-col">
-                            <span className="font-medium text-white truncate max-w-[240px]">
-                              {entry.title}
-                            </span>
+                            {entry.url ? (
+                              <a
+                                href={entry.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-medium text-white transition-colors hover:text-sky-300 truncate max-w-[240px]"
+                                title={entry.title}
+                              >
+                                {entry.title}
+                              </a>
+                            ) : (
+                              <span className="font-medium text-white truncate max-w-[240px]">
+                                {entry.title}
+                              </span>
+                            )}
                             <span className="text-xs text-slate-400">{formatDate(entry.publishedAt)}</span>
                             {entry.url ? (
                               <a

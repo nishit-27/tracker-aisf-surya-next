@@ -214,6 +214,7 @@ export default function PlatformDeepDive({ accounts, media, selectedPlatform }) 
       dailyEntries.some((entry) => entry.trendSeries?.length)
   );
   const latestAggregatedGroup = aggregatedDaily?.groups?.[0] || null;
+  const aggregatedTopPost = latestAggregatedGroup?.topPost || null;
 
   const topPerformingContent = useMemo(() => {
     return media
@@ -515,13 +516,26 @@ export default function PlatformDeepDive({ accounts, media, selectedPlatform }) 
               <div>
                 Latest day {formatDate(latestAggregatedGroup.date)} • {formatNumber(latestAggregatedGroup.totals.views)} views
               </div>
-              {latestAggregatedGroup.topPost ? (
+              {aggregatedTopPost ? (
                 <div className="text-xs text-slate-400">
-                  Top driver: <span className="text-white">{latestAggregatedGroup.topPost.title || latestAggregatedGroup.topPost.externalId || "Untitled"}</span>
+                  Top driver: {aggregatedTopPost.url ? (
+                    <a
+                      href={aggregatedTopPost.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-white transition-colors hover:text-sky-300"
+                    >
+                      {aggregatedTopPost.title || aggregatedTopPost.externalId || "Untitled"}
+                    </a>
+                  ) : (
+                    <span className="text-white">
+                      {aggregatedTopPost.title || aggregatedTopPost.externalId || "Untitled"}
+                    </span>
+                  )}
                   {" • "}
-                  {formatNumber(latestAggregatedGroup.topPost.metrics?.views)} views
-                  {Number.isFinite(latestAggregatedGroup.topPost.viewShare)
-                    ? ` (${latestAggregatedGroup.topPost.viewShare.toFixed(1)}% of the day)`
+                  {formatNumber(aggregatedTopPost.metrics?.views)} views
+                  {Number.isFinite(aggregatedTopPost.viewShare)
+                    ? ` (${aggregatedTopPost.viewShare.toFixed(1)}% of the day)`
                     : ""}
                 </div>
               ) : null}
@@ -540,6 +554,8 @@ export default function PlatformDeepDive({ accounts, media, selectedPlatform }) 
           .toLowerCase()}-gradient`;
         const latestGroup = entry.groups?.[0] || null;
         const platformLabel = entry.platform.charAt(0).toUpperCase() + entry.platform.slice(1);
+        const topPost = latestGroup?.topPost || null;
+        const topPostTitle = topPost ? topPost.title || topPost.externalId || "Untitled" : "";
 
         return (
           <div
@@ -591,19 +607,30 @@ export default function PlatformDeepDive({ accounts, media, selectedPlatform }) 
                 <div>
                   {formatNumber(latestGroup.totals.views)} views • {formatNumber(latestGroup.totals.likes)} likes • {formatNumber(latestGroup.totals.comments)} comments
                 </div>
-                {latestGroup.topPost ? (
+                {topPost ? (
                   <div className="flex items-center gap-2 text-xs text-slate-400">
                     <span>
-                      Top driver: <span className="text-white">{latestGroup.topPost.title || latestGroup.topPost.externalId || "Untitled"}</span>
+                      Top driver: {topPost.url ? (
+                        <a
+                          href={topPost.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-white transition-colors hover:text-sky-300"
+                        >
+                          {topPostTitle}
+                        </a>
+                      ) : (
+                        <span className="text-white">{topPostTitle}</span>
+                      )}
                       {" • "}
-                      {formatNumber(latestGroup.topPost.metrics?.views)} views
-                      {Number.isFinite(latestGroup.topPost.viewShare)
-                        ? ` (${latestGroup.topPost.viewShare.toFixed(1)}% of the day)`
+                      {formatNumber(topPost.metrics?.views)} views
+                      {Number.isFinite(topPost.viewShare)
+                        ? ` (${topPost.viewShare.toFixed(1)}% of the day)`
                         : ""}
                     </span>
-                    {latestGroup.topPost.url ? (
+                    {topPost.url ? (
                       <a
-                        href={latestGroup.topPost.url}
+                        href={topPost.url}
                         target="_blank"
                         rel="noreferrer"
                         className="text-sky-300 hover:text-sky-200"
@@ -664,33 +691,51 @@ export default function PlatformDeepDive({ accounts, media, selectedPlatform }) 
         <div className="space-y-4">
           <h4 className="text-sm font-medium text-slate-300">Top Performing Content</h4>
           <div className="space-y-2">
-            {topPerformingContent.slice(0, 5).map((item, index) => (
-              <div key={`${item.platform}-${item.externalId}`} className="flex items-center justify-between p-3 rounded-lg border border-slate-800 bg-slate-900/70">
-                <div className="flex items-center gap-3">
-                  <div className="text-sm font-medium text-slate-400">#{index + 1}</div>
-                  <div 
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: platformColors[item.platform] || "#6b7280" }}
-                  />
-                  <div>
-                    <div className="text-sm font-medium text-white truncate max-w-[200px]">
-                      {item.title || "Untitled"}
+            {topPerformingContent.slice(0, 5).map((item, index) => {
+              const mediaUrl = item.url;
+              const Wrapper = mediaUrl ? "a" : "div";
+              const wrapperClasses = `flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/70 p-3${
+                mediaUrl ? " transition-colors hover:border-slate-700 hover:bg-slate-900" : ""
+              }`;
+
+              return (
+                <Wrapper
+                  key={`${item.platform}-${item.externalId}`}
+                  className={wrapperClasses}
+                  {...(mediaUrl
+                    ? {
+                        href: mediaUrl,
+                        target: "_blank",
+                        rel: "noreferrer",
+                      }
+                    : {})}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm font-medium text-slate-400">#{index + 1}</div>
+                    <div
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: platformColors[item.platform] || "#6b7280" }}
+                    />
+                    <div>
+                      <div className="max-w-[200px] truncate text-sm font-medium text-white transition-colors hover:text-sky-300">
+                        {item.title || "Untitled"}
+                      </div>
+                      <div className="text-xs text-slate-400 capitalize">
+                        {item.platform} • {new Date(item.publishedAt).toLocaleDateString()}
+                      </div>
                     </div>
-                    <div className="text-xs text-slate-400 capitalize">
-                      {item.platform} • {new Date(item.publishedAt).toLocaleDateString()}
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold text-white">
+                      {formatNumber(item.metrics?.views)}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {formatPercent(item.metrics?.engagementRate)} engagement
                     </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-semibold text-white">
-                    {formatNumber(item.metrics?.views)}
-                  </div>
-                  <div className="text-xs text-slate-400">
-                    {formatPercent(item.metrics?.engagementRate)} engagement
-                  </div>
-                </div>
-              </div>
-            ))}
+                </Wrapper>
+              );
+            })}
           </div>
         </div>
       )}

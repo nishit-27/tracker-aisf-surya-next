@@ -429,10 +429,22 @@ export default function VideosTable({
                         {columns.map((column) => {
                           const columnClassName = column.className ? ` ${column.className}` : "";
                           switch (column.id) {
-                            case "video":
+                            case "video": {
+                              const videoUrl = item.raw?.url;
+                              const Wrapper = videoUrl ? "a" : "div";
+                              const wrapperClasses = `flex min-w-0 items-start gap-3${videoUrl ? " group" : ""}`;
                               return (
                                 <td key={column.id} className={`px-4 py-4 align-top${columnClassName}`}>
-                                  <div className="flex min-w-0 items-start gap-3">
+                                  <Wrapper
+                                    className={wrapperClasses}
+                                    {...(videoUrl
+                                      ? {
+                                          href: videoUrl,
+                                          target: "_blank",
+                                          rel: "noreferrer",
+                                        }
+                                      : {})}
+                                  >
                                     <div className="relative h-16 w-28 flex-shrink-0 overflow-hidden rounded-xl border border-white/10 bg-[#131527]">
                                       {item.thumbnailUrl ? (
                                         <img
@@ -450,7 +462,10 @@ export default function VideosTable({
                                       </span>
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                      <p className="mb-1 truncate text-sm font-semibold text-white" title={item.title}>
+                                      <p
+                                        className="mb-1 truncate text-sm font-semibold text-white transition-colors group-hover:text-sky-300"
+                                        title={item.title}
+                                      >
                                         {item.title.length > 70 ? `${item.title.substring(0, 70)}…` : item.title}
                                       </p>
                                       <p className="flex items-center gap-1 text-xs text-slate-500" title={item.accountName}>
@@ -458,9 +473,10 @@ export default function VideosTable({
                                         <span className="truncate">{item.accountName}</span>
                                       </p>
                                     </div>
-                                  </div>
+                                  </Wrapper>
                                 </td>
                               );
+                            }
                             case "account":
                               return (
                                 <td key={column.id} className={`px-4 py-4${columnClassName}`}>

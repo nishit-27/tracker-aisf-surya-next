@@ -42,6 +42,7 @@ import AppDropdown from "../ui/AppDropdown";
 import MultiAccountDailyTrend from "./MultiAccountDailyTrend";
 import DailyViewsTimeline from "./DailyViewsTimeline";
 import FloatingNavbar from "../ui/FloatingNavbar";
+import ProjectsManager from "./ProjectsManager";
 import { PlatformImage } from "../../lib/utils/platformImages";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -79,13 +80,6 @@ const metricDisplayOptions = [
   { value: "shares", label: "Shares" },
 ];
 
-const projectOptions = [
-  { value: "all", label: "All projects" },
-  { value: "launch", label: "Launch Campaign" },
-  { value: "ugc", label: "UGC Collaboration" },
-  { value: "seasonal", label: "Seasonal Push" },
-];
-
 const sidebarNavigation = [
   {
     title: "Analytics",
@@ -93,6 +87,7 @@ const sidebarNavigation = [
       { id: "overview", label: "Overview", icon: LayoutDashboard },
       { id: "accounts", label: "Accounts", icon: Users },
       { id: "videos", label: "Videos", icon: Clapperboard },
+      { id: "projects", label: "Projects", icon: FolderKanban },
       { id: "tracking", label: "Tracking Options", icon: Radar },
     ],
   },
@@ -149,7 +144,7 @@ function formatShortDate(value) {
     return "—";
   }
   const parsed = new Date(value);
-  return parsed.toLocaleDateString(undefined, {
+  return parsed.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -328,7 +323,11 @@ export default function DashboardClient({ data, platforms }) {
   const selectionInitialisedRef = useRef(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedProject, setSelectedProject] = useState("all");
+  const [projects, setProjects] = useState([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectsError, setProjectsError] = useState(null);
   const [primaryMetric, setPrimaryMetric] = useState("views");
+  const [secondaryMetric, setSecondaryMetric] = useState("likes");
   const [trackingRange, setTrackingRange] = useState("90d");
   const mainScrollRef = useRef(null);
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
@@ -338,6 +337,34 @@ export default function DashboardClient({ data, platforms }) {
     const unique = Array.from(new Set([...(platforms ?? [])]));
     return ["all", ...unique];
   }, [platforms]);
+
+  const refreshProjects = useCallback(async () => {
+    setProjectsLoading(true);
+    setProjectsError(null);
+
+    try {
+      const response = await fetch("/api/projects", { cache: "no-store" });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error || "Failed to load projects.");
+      }
+
+      const payload = await response.json().catch(() => ({}));
+      setProjects(payload?.projects ?? []);
+      return { success: true, projects: payload?.projects ?? [] };
+    } catch (error) {
+      console.error("[dashboard] unable to load projects", error);
+      setProjectsError(error.message || "Failed to load projects.");
+      return { success: false, error };
+    } finally {
+      setProjectsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshProjects();
+  }, [refreshProjects]);
 
   const accountOptions = useMemo(() => {
     const options = [
@@ -350,6 +377,98 @@ export default function DashboardClient({ data, platforms }) {
     ];
     return options;
   }, [analyticsData.accounts]);
+
+  const projectOptions = useMemo(() => {
+    const options = [
+      { value: "all", label: "All projects", accountIds: [] },
+      ...projects.map((project) => ({
+        value: project._id,
+        label: project.name,
+        accountIds: project.accountIds || [],
+      })),
+    ];
+    return options;
+  }, [projects]);
+
+  const handleCreateProject = useCallback(
+    async ({ name, description, accountIds }) => {
+      try {
+        const response = await fetch("/api/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, description, accountIds }),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(payload?.error || "Failed to create project.");
+        }
+
+        if (payload?.project?._id) {
+          setSelectedProject(String(payload.project._id));
+        }
+
+        await refreshProjects();
+
+        return { success: true, project: payload?.project };
+      } catch (error) {
+        console.error("[dashboard:createProject]", error);
+        return { success: false, error: error.message || "Failed to create project." };
+      }
+    },
+    [refreshProjects]
+  );
+
+  const handleUpdateProject = useCallback(
+    async (projectId, updates) => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(payload?.error || "Failed to update project.");
+        }
+
+        await refreshProjects();
+
+        return { success: true, project: payload?.project };
+      } catch (error) {
+        console.error("[dashboard:updateProject]", error);
+        return { success: false, error: error.message || "Failed to update project." };
+      }
+    },
+    [refreshProjects]
+  );
+
+  const handleDeleteProject = useCallback(
+    async (projectId) => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}`, {
+          method: "DELETE",
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(payload?.error || "Failed to delete project.");
+        }
+
+        await refreshProjects();
+
+        return { success: true };
+      } catch (error) {
+        console.error("[dashboard:deleteProject]", error);
+        return { success: false, error: error.message || "Failed to delete project." };
+      }
+    },
+    [refreshProjects]
+  );
 
   useEffect(() => {
     const selected = accountOptions.find((option) => option.value === selectedAccount);
@@ -373,6 +492,25 @@ export default function DashboardClient({ data, platforms }) {
       }
     }
   }, [selectedPlatform, selectedAccount, accountOptions]);
+
+  useEffect(() => {
+    if (selectedProject === "all" || projectsLoading) {
+      return;
+    }
+
+    const project = projects.find((item) => item._id === selectedProject);
+
+    if (!project) {
+      setSelectedProject("all");
+      return;
+    }
+
+    const allowedIds = new Set((project.accountIds || []).map((id) => String(id)));
+
+    if (selectedAccount !== "all" && !allowedIds.has(selectedAccount)) {
+      setSelectedAccount("all");
+    }
+  }, [selectedProject, projects, selectedAccount, projectsLoading]);
 
   useEffect(() => {
     const availableIds = analyticsData.accounts.map((account) => account._id);
@@ -402,6 +540,20 @@ export default function DashboardClient({ data, platforms }) {
     });
   }, [analyticsData.accounts]);
 
+  const selectedProjectAccountIds = useMemo(() => {
+    if (selectedProject === "all") {
+      return null;
+    }
+
+    const project = projects.find((item) => item._id === selectedProject);
+
+    if (!project) {
+      return null;
+    }
+
+    return new Set((project.accountIds || []).map((id) => String(id)));
+  }, [selectedProject, projects]);
+
   const filteredAccounts = useMemo(() => {
     let accounts = analyticsData.accounts;
 
@@ -413,8 +565,12 @@ export default function DashboardClient({ data, platforms }) {
       accounts = accounts.filter((account) => account._id === selectedAccount);
     }
 
+    if (selectedProjectAccountIds) {
+      accounts = accounts.filter((account) => selectedProjectAccountIds.has(account._id));
+    }
+
     return accounts;
-  }, [analyticsData.accounts, selectedPlatform, selectedAccount]);
+  }, [analyticsData.accounts, selectedPlatform, selectedAccount, selectedProjectAccountIds]);
 
   const baseMediaMatches = useCallback(
     (item) => {
@@ -426,9 +582,13 @@ export default function DashboardClient({ data, platforms }) {
         return false;
       }
 
+      if (selectedProjectAccountIds && !selectedProjectAccountIds.has(String(item.account))) {
+        return false;
+      }
+
       return true;
     },
-    [selectedPlatform, selectedAccount]
+    [selectedPlatform, selectedAccount, selectedProjectAccountIds]
   );
 
   const filteredMedia = useMemo(() => {
@@ -624,13 +784,23 @@ export default function DashboardClient({ data, platforms }) {
   const trackingDays = dateRanges[trackingRange];
 
   const trackingMedia = useMemo(() => {
+    if (!selectedAccounts.length) {
+      return [];
+    }
+
+    const selectedSet = new Set(selectedAccounts.map((id) => String(id)));
+
+    const scopedMedia = analyticsData.media.filter((item) =>
+      selectedSet.has(String(item.account))
+    );
+
     if (trackingDays === null || trackingDays === undefined) {
-      return analyticsData.media;
+      return scopedMedia;
     }
 
     const threshold = Date.now() - trackingDays * DAY_MS;
 
-    return analyticsData.media.filter((item) => {
+    return scopedMedia.filter((item) => {
       if (!item?.publishedAt) {
         return false;
       }
@@ -640,7 +810,7 @@ export default function DashboardClient({ data, platforms }) {
       }
       return publishedAt >= threshold;
     });
-  }, [analyticsData.media, trackingDays]);
+  }, [analyticsData.media, trackingDays, selectedAccounts]);
 
   const statCards = useMemo(
     () => [
@@ -854,19 +1024,36 @@ export default function DashboardClient({ data, platforms }) {
                       Daily performance across the selected period
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">Primary metric</span>
-                    <AppDropdown
-                      value={primaryMetric}
-                      options={metricDisplayOptions}
-                      onChange={setPrimaryMetric}
-                      className="min-h-0 min-w-[160px] rounded-full"
-                      panelClassName="mt-2 min-w-[200px]"
-                      placeholder=""
-                    />
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">Primary metric</span>
+                      <AppDropdown
+                        value={primaryMetric}
+                        options={metricDisplayOptions}
+                        onChange={setPrimaryMetric}
+                        className="min-h-0 min-w-[160px] rounded-full"
+                        panelClassName="mt-2 min-w-[200px]"
+                        placeholder=""
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">Secondary metric</span>
+                      <AppDropdown
+                        value={secondaryMetric}
+                        options={metricDisplayOptions}
+                        onChange={setSecondaryMetric}
+                        className="min-h-0 min-w-[160px] rounded-full"
+                        panelClassName="mt-2 min-w-[200px]"
+                        placeholder=""
+                      />
+                    </div>
                   </div>
                 </div>
-                <OverviewMetricChart data={metricsTimelineData} metric={primaryMetric} />
+                <OverviewMetricChart
+                  data={metricsTimelineData}
+                  primaryMetric={primaryMetric}
+                  secondaryMetric={secondaryMetric}
+                />
               </div>
 
               <div className="flex h-full flex-col rounded-3xl border border-white/5 bg-[#101125] px-6 py-6">
@@ -901,45 +1088,62 @@ export default function DashboardClient({ data, platforms }) {
 
                 {topMediaItems.length ? (
                   <div className="flex flex-1 flex-col gap-3">
-                    {topMediaItems.map((item, index) => (
-                      <div
-                        key={`${item.platform}-${item.externalId || item._id}-${index}`}
-                        className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/5 px-4 py-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-semibold text-slate-400">#{index + 1}</span>
-                          <div className="relative h-12 w-12 overflow-hidden rounded-2xl border border-white/10 bg-[#16182c]">
-                            {item.thumbnailUrl ? (
-                              <Image
-                                src={item.thumbnailUrl}
-                                alt={item.title || "Video thumbnail"}
-                                fill
-                                sizes="48px"
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-500">
-                                {formatPlatformLabel(item.platform).slice(0, 2)}
-                              </div>
-                            )}
+                    {topMediaItems.map((item, index) => {
+                      const mediaUrl = item.url;
+                      const Wrapper = mediaUrl ? "a" : "div";
+                      const wrapperClasses = `flex items-center justify-between rounded-2xl border border-white/5 bg-white/5 px-4 py-3${
+                        mediaUrl ? " transition-colors hover:border-white/10 hover:bg-white/10" : ""
+                      }`;
+
+                      return (
+                        <Wrapper
+                          key={`${item.platform}-${item.externalId || item._id}-${index}`}
+                          className={wrapperClasses}
+                          {...(mediaUrl
+                            ? {
+                                href: mediaUrl,
+                                target: "_blank",
+                                rel: "noreferrer",
+                              }
+                            : {})}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-semibold text-slate-400">#{index + 1}</span>
+                            <div className="relative h-12 w-12 overflow-hidden rounded-2xl border border-white/10 bg-[#16182c]">
+                              {item.thumbnailUrl ? (
+                                <Image
+                                  src={item.thumbnailUrl}
+                                  alt={item.title || "Video thumbnail"}
+                                  fill
+                                  sizes="48px"
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-500">
+                                  {formatPlatformLabel(item.platform).slice(0, 2)}
+                                </div>
+                              )}
+                            </div>
+                            <div className="max-w-[220px]">
+                              <p className="truncate text-sm font-semibold text-white transition-colors hover:text-sky-300">
+                                {item.title || "Untitled"}
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                {formatPlatformLabel(item.platform)} • {formatShortDate(item.publishedAt)}
+                              </p>
+                            </div>
                           </div>
-                          <div className="max-w-[220px]">
-                            <p className="truncate text-sm font-semibold text-white">{item.title || "Untitled"}</p>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-white">
+                              {formatNumber(item.metrics?.views)}
+                            </p>
                             <p className="text-xs text-slate-400">
-                              {formatPlatformLabel(item.platform)} • {formatShortDate(item.publishedAt)}
+                              {formatPercent(item.metrics?.engagementRate)} engagement
                             </p>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-white">
-                            {formatNumber(item.metrics?.views)}
-                          </p>
-                          <p className="text-xs text-slate-400">
-                            {formatPercent(item.metrics?.engagementRate)} engagement
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                        </Wrapper>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/5 px-4 py-10 text-center text-sm text-slate-400">
@@ -1084,24 +1288,22 @@ export default function DashboardClient({ data, platforms }) {
             <DailyViewsTimeline
               accounts={analyticsData.accounts}
               media={trackingMedia}
-              selectedAccount={selectedAccount}
-              selectedPlatform={selectedPlatform}
               selectedAccounts={selectedAccounts}
             />
             <MultiAccountDailyTrend
               accounts={analyticsData.accounts}
-              media={analyticsData.media}
+              media={trackingMedia}
               selectedAccounts={selectedAccounts}
               rangeDays={trackingDays}
             />
             <AccountComparison accounts={analyticsData.accounts} selectedAccounts={selectedAccounts} />
             <TimeAnalysis
-              accounts={analyticsData.accounts}
+              accounts={filteredAccounts}
               selectedAccount={selectedAccount}
               selectedPlatform={selectedPlatform}
             />
             <PlatformDeepDive
-              accounts={analyticsData.accounts}
+              accounts={filteredAccounts}
               media={filteredMedia}
               selectedPlatform={selectedPlatform}
             />
@@ -1109,12 +1311,16 @@ export default function DashboardClient({ data, platforms }) {
         );
       case "projects":
         return (
-          <div className="rounded-3xl border border-white/5 bg-[#101125] p-10 text-center">
-            <h2 className="text-xl font-semibold text-white">Projects Dashboard</h2>
-            <p className="mt-3 text-sm text-slate-400">
-              Project management insights are coming soon. Let us know which views would help your team most.
-            </p>
-          </div>
+          <ProjectsManager
+            projects={projects}
+            accounts={analyticsData.accounts}
+            isLoading={projectsLoading}
+            error={projectsError}
+            onCreateProject={handleCreateProject}
+            onUpdateProject={handleUpdateProject}
+            onDeleteProject={handleDeleteProject}
+            onReloadProjects={refreshProjects}
+          />
         );
       case "server":
         return (
@@ -1132,9 +1338,12 @@ export default function DashboardClient({ data, platforms }) {
 
   // Create floating nav items for major filters
   const floatingNavItems = useMemo(() => {
-    const selectedAccountLabel = accountOptions.find(opt => opt.value === selectedAccount)?.label || "All accounts";
-    const selectedProjectLabel = projectOptions.find(opt => opt.value === selectedProject)?.label || "All projects";
-    const selectedRangeLabel = rangeOptions.find(opt => opt.value === selectedRange)?.label || "Last 30 days";
+    const selectedAccountLabel =
+      accountOptions.find((opt) => opt.value === selectedAccount)?.label || "All accounts";
+    const selectedProjectLabel =
+      projectOptions.find((opt) => opt.value === selectedProject)?.label || "All projects";
+    const selectedRangeLabel =
+      rangeOptions.find((opt) => opt.value === selectedRange)?.label || "Last 30 days";
 
     return [
       {
@@ -1142,11 +1351,27 @@ export default function DashboardClient({ data, platforms }) {
         placeholder: "Select account...",
         icon: <Users className="h-4 w-4" />,
         hasDropdown: true,
-        selectedValue: accountOptions.find(opt => opt.value === selectedAccount)?.label || "All accounts",
-        dropdownOptions: accountOptions.map(option => ({
+        selectedValue: selectedAccountLabel,
+        dropdownOptions: accountOptions.map((option) => ({
           label: option.label,
-          onClick: () => setSelectedAccount(option.value)
-        }))
+          onClick: () => setSelectedAccount(option.value),
+        })),
+      },
+      {
+        name: "Projects",
+        placeholder: "Select project...",
+        icon: <FolderKanban className="h-4 w-4" />,
+        hasDropdown: true,
+        selectedValue: selectedProjectLabel,
+        dropdownOptions: projectOptions.map((option) => ({
+          label: option.label,
+          onClick: () => {
+            setSelectedProject(option.value);
+            if (option.value !== "all") {
+              setSelectedAccount("all");
+            }
+          },
+        })),
       },
       {
         name: "Platforms",
@@ -1177,11 +1402,11 @@ export default function DashboardClient({ data, platforms }) {
         placeholder: "Select date range...",
         icon: <CalendarRange className="h-4 w-4" />,
         hasDropdown: true,
-        selectedValue: rangeOptions.find(opt => opt.value === selectedRange)?.label || "Last 30 days",
-        dropdownOptions: rangeOptions.map(option => ({
+        selectedValue: selectedRangeLabel,
+        dropdownOptions: rangeOptions.map((option) => ({
           label: option.label,
-          onClick: () => setSelectedRange(option.value)
-        }))
+          onClick: () => setSelectedRange(option.value),
+        })),
       },
     ];
   }, [selectedAccount, selectedProject, selectedPlatform, selectedRange, accountOptions, projectOptions, platformFilters]);

@@ -88,31 +88,18 @@ function expandDates(seriesList = []) {
 export default function DailyViewsTimeline({
   accounts = [],
   media = [],
-  selectedAccount = "all",
-  selectedPlatform = "all",
   selectedAccounts = [],
 }) {
   const effectiveAccountIds = useMemo(() => {
-    if (selectedAccounts?.length) {
-      return selectedAccounts
-        .map((accountId) => accounts.find((account) => account._id === accountId))
-        .filter(Boolean)
-        .map((account) => account._id);
+    if (!selectedAccounts?.length) {
+      return [];
     }
 
-    let filtered = accounts;
-
-    if (selectedPlatform !== "all") {
-      filtered = filtered.filter((account) => account.platform === selectedPlatform);
-    }
-
-    if (selectedAccount !== "all") {
-      const match = filtered.find((account) => account._id === selectedAccount);
-      return match ? [match._id] : [];
-    }
-
-    return filtered.map((account) => account._id);
-  }, [accounts, selectedAccount, selectedPlatform, selectedAccounts]);
+    return selectedAccounts
+      .map((accountId) => accounts.find((account) => account._id === accountId))
+      .filter(Boolean)
+      .map((account) => account._id);
+  }, [accounts, selectedAccounts]);
 
   const selectedEntries = useMemo(() => {
     return effectiveAccountIds
@@ -187,13 +174,13 @@ export default function DailyViewsTimeline({
       <div className="flex flex-col gap-2">
         <h3 className="text-lg font-semibold text-white">Views vs Time</h3>
         <p className="text-xs text-slate-400">
-          Totals calculated per day using the latest media refresh. Pick accounts via the primary selector or the comparison toggles above.
+          Totals calculated per day using the latest media refresh. Pick accounts using the tracking toggles above.
         </p>
       </div>
 
       {!hasSelection ? (
         <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 text-xs text-slate-400">
-          No accounts match the current filters. Adjust the Account selector above or toggle comparison accounts.
+          Select at least one account in the tracking panel to plot this timeline.
         </div>
       ) : hasData ? (
         <div className="h-80 rounded-xl border border-slate-800 bg-slate-900/60 p-4">

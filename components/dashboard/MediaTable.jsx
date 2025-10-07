@@ -76,15 +76,29 @@ export default function MediaTable({ media, sortField, sortOptions }) {
                 </td>
                 <td className="max-w-[260px] px-3 py-3 align-middle text-sm font-medium text-slate-100">
                   <div className="flex flex-col">
-                    <span className="truncate">{item.title || "Untitled"}</span>
-                    <a
-                      className="text-xs text-sky-400 hover:text-sky-300"
-                      href={item.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      View post
-                    </a>
+                    {item.url ? (
+                      <>
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="truncate text-slate-100 transition-colors hover:text-sky-300"
+                          title={item.title || item.externalId || "Untitled"}
+                        >
+                          {item.title || "Untitled"}
+                        </a>
+                        <a
+                          className="text-xs text-sky-400 hover:text-sky-300"
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View post
+                        </a>
+                      </>
+                    ) : (
+                      <span className="truncate">{item.title || "Untitled"}</span>
+                    )}
                   </div>
                 </td>
                 <td className="px-3 py-3 align-middle text-xs text-slate-300">
