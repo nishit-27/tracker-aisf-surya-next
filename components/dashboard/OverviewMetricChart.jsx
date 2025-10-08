@@ -45,17 +45,21 @@ function formatDateLabel(value) {
 }
 
 const METRIC_COLORS = {
+  none: "#64748b",
   views: "#38bdf8",
   likes: "#f472b6",
   comments: "#facc15",
   shares: "#a855f7",
+  followers: "#10b981",
 };
 
 const METRIC_LABELS = {
+  none: "None",
   views: "Views",
   likes: "Likes",
   comments: "Comments",
   shares: "Shares",
+  followers: "Followers",
 };
 
 function lightenColor(hex, amount = 0.25) {
@@ -102,8 +106,17 @@ export default function OverviewMetricChart({
     );
   }
 
+  // Handle "none" case - show message instead of chart
+  if (primaryMetric === "none" && (secondaryMetric === "none" || !secondaryMetric)) {
+    return (
+      <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
+        No metrics selected. Choose primary and secondary metrics to display the chart.
+      </div>
+    );
+  }
+
   const primaryColor = METRIC_COLORS[primaryMetric] ?? "#a855f7";
-  const hasSecondaryMetric = Boolean(secondaryMetric);
+  const hasSecondaryMetric = Boolean(secondaryMetric) && secondaryMetric !== "none";
   const secondaryColorBase = hasSecondaryMetric
     ? METRIC_COLORS[secondaryMetric] ?? "#38bdf8"
     : null;
@@ -172,14 +185,16 @@ export default function OverviewMetricChart({
           iconType="circle"
           formatter={(value) => value}
         />
-        <Bar
-          yAxisId="left"
-          dataKey={primaryMetric}
-          radius={[6, 6, 12, 12]}
-          fill={primaryColor}
-          name={primaryLabel}
-          fillOpacity={0.85}
-        />
+        {primaryMetric !== "none" && (
+          <Bar
+            yAxisId="left"
+            dataKey={primaryMetric}
+            radius={[6, 6, 12, 12]}
+            fill={primaryColor}
+            name={primaryLabel}
+            fillOpacity={0.85}
+          />
+        )}
         {hasSecondaryMetric ? (
           <Line
             yAxisId="right"

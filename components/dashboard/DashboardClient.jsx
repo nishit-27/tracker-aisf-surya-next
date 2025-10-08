@@ -76,10 +76,12 @@ const mediaSortOptions = [
 ];
 
 const metricDisplayOptions = [
+  { value: "none", label: "None" },
   { value: "views", label: "Views" },
   { value: "likes", label: "Likes" },
   { value: "comments", label: "Comments" },
   { value: "shares", label: "Shares" },
+  { value: "followers", label: "Followers" },
 ];
 
 const sidebarNavigation = [
@@ -711,6 +713,7 @@ export default function DashboardClient({ data, platforms }) {
   const metricsTimelineData = useMemo(() => {
     const grouped = new Map();
 
+    // Add media metrics
     filteredMedia.forEach((item) => {
       if (!item?.publishedAt) {
         return;
@@ -718,7 +721,7 @@ export default function DashboardClient({ data, platforms }) {
 
       const key = formatDateKey(item.publishedAt);
       if (!grouped.has(key)) {
-        grouped.set(key, { date: key, views: 0, likes: 0, comments: 0, shares: 0 });
+        grouped.set(key, { date: key, views: 0, likes: 0, comments: 0, shares: 0, followers: 0 });
       }
 
       const entry = grouped.get(key);
@@ -728,8 +731,31 @@ export default function DashboardClient({ data, platforms }) {
       entry.shares += item.metrics?.shares ?? 0;
     });
 
+    // Add account followers data (latest snapshot per day)
+    filteredAccounts.forEach((account) => {
+      (account.history ?? []).forEach((snapshot) => {
+        if (!snapshot?.date) {
+          return;
+        }
+
+        const snapshotDate = new Date(snapshot.date);
+        if (rangeBoundaries?.currentStart && snapshotDate < rangeBoundaries.currentStart) {
+          return;
+        }
+
+        const key = formatDateKey(snapshotDate);
+        if (!grouped.has(key)) {
+          grouped.set(key, { date: key, views: 0, likes: 0, comments: 0, shares: 0, followers: 0 });
+        }
+
+        const entry = grouped.get(key);
+        // Use the latest followers count for each day
+        entry.followers = Math.max(entry.followers, snapshot.followers ?? 0);
+      });
+    });
+
     return Array.from(grouped.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
-  }, [filteredMedia]);
+  }, [filteredMedia, filteredAccounts, rangeBoundaries]);
 
   const topMediaItems = useMemo(() => filteredMedia.slice(0, 5), [filteredMedia]);
 
@@ -1090,37 +1116,31 @@ export default function DashboardClient({ data, platforms }) {
 
             <section className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
               <div className="flex h-full flex-col rounded-3xl border border-white/5 bg-[#101125] px-6 py-6">
-                <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                  <div>
+                <div className="mb-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
                     <h2 className="text-lg font-semibold text-white">Metrics</h2>
-                    <p className="text-xs text-slate-400">
-                      Daily performance across the selected period
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400">Primary metric</span>
+                    <div className="flex flex-wrap items-center gap-3">
                       <AppDropdown
                         value={primaryMetric}
                         options={metricDisplayOptions}
                         onChange={setPrimaryMetric}
-                        className="min-h-0 min-w-[160px] rounded-full"
-                        panelClassName="mt-2 min-w-[200px]"
+                        className="min-h-0 min-w-[140px] rounded-full"
+                        panelClassName="mt-2 min-w-[180px]"
                         placeholder=""
                       />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400">Secondary metric</span>
                       <AppDropdown
                         value={secondaryMetric}
                         options={metricDisplayOptions}
                         onChange={setSecondaryMetric}
-                        className="min-h-0 min-w-[160px] rounded-full"
-                        panelClassName="mt-2 min-w-[200px]"
+                        className="min-h-0 min-w-[140px] rounded-full"
+                        panelClassName="mt-2 min-w-[180px]"
                         placeholder=""
                       />
                     </div>
                   </div>
+                  <p className="text-xs text-slate-400">
+                    Daily performance across the selected period
+                  </p>
                 </div>
                 <OverviewMetricChart
                   data={metricsTimelineData}
