@@ -160,34 +160,59 @@ const FloatingNavbar = ({ navItems, className = "", activeNavItem, onAddAccount,
           ) : (
             /* Regular Input Box */
             <div
-              className={`flex items-center space-x-2 rounded-lg border px-2 py-1.5 text-xs transition-all duration-200 cursor-pointer min-w-[100px] sm:px-3 sm:py-2 sm:text-sm sm:min-w-[140px] ${
+              className={`flex items-center justify-center rounded-lg border text-xs transition-all duration-200 cursor-pointer ${
+                item.name === "Date Range" 
+                  ? "w-8 h-8 sm:w-9 sm:h-9" 
+                  : "space-x-1 px-2 py-1.5 min-w-[100px] sm:px-3 sm:py-2 sm:text-sm sm:min-w-[140px]"
+              } ${
                 activeDropdown === index
                   ? "border-sky-500/50 bg-sky-500/10 text-white"
                   : "border-white/20 bg-white/5 text-neutral-400 hover:border-white/30 hover:text-neutral-300"
               }`}
               onClick={() => handleInputClick(index, item)}
             >
-              {item.icon && (
-                <span className="flex h-3 w-3 items-center justify-center text-neutral-500 sm:h-4 sm:w-4">
-                  {item.icon}
-                </span>
-              )}
-              <input
-                ref={(el) => (inputRefs.current[index] = el)}
-                type="text"
-                placeholder={item.placeholder || item.name}
-                value={searchTerms[index] || item.selectedValue || ""}
-                onChange={(e) => handleSearchChange(index, e.target.value)}
-                onFocus={() => handleInputFocus(index)}
-                className="flex-1 bg-transparent outline-none placeholder-neutral-500 text-sm"
-                readOnly={!item.hasDropdown}
-              />
-              {item.hasDropdown && (
-                <ChevronDown 
-                  className={`h-3 w-3 text-neutral-500 transition-transform duration-200 sm:h-4 sm:w-4 ${
-                    activeDropdown === index ? "rotate-180" : ""
-                  }`} 
-                />
+              {item.name === "Date Range" ? (
+                // Square date filter - just icon and chevron
+                <>
+                  {item.icon && (
+                    <span className="flex items-center justify-center text-neutral-500 h-3 w-3 sm:h-4 sm:w-4">
+                      {item.icon}
+                    </span>
+                  )}
+                  {item.hasDropdown && (
+                    <ChevronDown 
+                      className={`text-neutral-500 transition-transform duration-200 h-2 w-2 sm:h-2.5 sm:w-2.5 ${
+                        activeDropdown === index ? "rotate-180" : ""
+                      }`} 
+                    />
+                  )}
+                </>
+              ) : (
+                // Regular rectangular filters
+                <>
+                  {item.icon && (
+                    <span className="flex h-3 w-3 items-center justify-center text-neutral-500 sm:h-4 sm:w-4">
+                      {item.icon}
+                    </span>
+                  )}
+                  <input
+                    ref={(el) => (inputRefs.current[index] = el)}
+                    type="text"
+                    placeholder={item.placeholder || item.name}
+                    value={searchTerms[index] || item.selectedValue || ""}
+                    onChange={(e) => handleSearchChange(index, e.target.value)}
+                    onFocus={() => handleInputFocus(index)}
+                    className="flex-1 bg-transparent outline-none placeholder-neutral-500 text-sm"
+                    readOnly={!item.hasDropdown}
+                  />
+                  {item.hasDropdown && (
+                    <ChevronDown 
+                      className={`h-3 w-3 text-neutral-500 transition-transform duration-200 sm:h-4 sm:w-4 ${
+                        activeDropdown === index ? "rotate-180" : ""
+                      }`} 
+                    />
+                  )}
+                </>
               )}
             </div>
           )}
