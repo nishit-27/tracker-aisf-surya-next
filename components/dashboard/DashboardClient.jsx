@@ -325,6 +325,8 @@ export default function DashboardClient({ data, platforms }) {
   const selectionInitialisedRef = useRef(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedProject, setSelectedProject] = useState("all");
+  const [selectedMultipleAccounts, setSelectedMultipleAccounts] = useState([]);
+  const [selectedMultipleProjects, setSelectedMultipleProjects] = useState([]);
   const [projects, setProjects] = useState([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState(null);
@@ -543,18 +545,24 @@ export default function DashboardClient({ data, platforms }) {
   }, [analyticsData.accounts]);
 
   const selectedProjectAccountIds = useMemo(() => {
-    if (selectedProject === "all") {
+    // Use multi-selected projects if any are selected, otherwise fall back to single selected project
+    const projectIds = selectedMultipleProjects.length > 0 ? selectedMultipleProjects : 
+      (selectedProject !== "all" ? [selectedProject] : []);
+    
+    if (projectIds.length === 0) {
       return null;
     }
 
-    const project = projects.find((item) => item._id === selectedProject);
+    const allAccountIds = new Set();
+    projectIds.forEach(projectId => {
+      const project = projects.find((item) => item._id === projectId);
+      if (project) {
+        (project.accountIds || []).forEach(id => allAccountIds.add(String(id)));
+      }
+    });
 
-    if (!project) {
-      return null;
-    }
-
-    return new Set((project.accountIds || []).map((id) => String(id)));
-  }, [selectedProject, projects]);
+    return allAccountIds.size > 0 ? allAccountIds : null;
+  }, [selectedProject, selectedMultipleProjects, projects]);
 
   const filteredAccounts = useMemo(() => {
     let accounts = analyticsData.accounts;
@@ -563,8 +571,13 @@ export default function DashboardClient({ data, platforms }) {
       accounts = accounts.filter((account) => account.platform === selectedPlatform);
     }
 
-    if (selectedAccount !== "all") {
-      accounts = accounts.filter((account) => account._id === selectedAccount);
+    // Use multi-selected accounts if any are selected, otherwise fall back to single selected account
+    const accountIds = selectedMultipleAccounts.length > 0 ? selectedMultipleAccounts : 
+      (selectedAccount !== "all" ? [selectedAccount] : []);
+
+    if (accountIds.length > 0) {
+      const accountIdSet = new Set(accountIds);
+      accounts = accounts.filter((account) => accountIdSet.has(account._id));
     }
 
     if (selectedProjectAccountIds) {
@@ -572,7 +585,7 @@ export default function DashboardClient({ data, platforms }) {
     }
 
     return accounts;
-  }, [analyticsData.accounts, selectedPlatform, selectedAccount, selectedProjectAccountIds]);
+  }, [analyticsData.accounts, selectedPlatform, selectedAccount, selectedMultipleAccounts, selectedProjectAccountIds]);
 
   const baseMediaMatches = useCallback(
     (item) => {
@@ -580,7 +593,11 @@ export default function DashboardClient({ data, platforms }) {
         return false;
       }
 
-      if (selectedAccount !== "all" && item.account !== selectedAccount) {
+      // Use multi-selected accounts if any are selected, otherwise fall back to single selected account
+      const accountIds = selectedMultipleAccounts.length > 0 ? selectedMultipleAccounts : 
+        (selectedAccount !== "all" ? [selectedAccount] : []);
+
+      if (accountIds.length > 0 && !accountIds.includes(item.account)) {
         return false;
       }
 
@@ -590,7 +607,7 @@ export default function DashboardClient({ data, platforms }) {
 
       return true;
     },
-    [selectedPlatform, selectedAccount, selectedProjectAccountIds]
+    [selectedPlatform, selectedAccount, selectedMultipleAccounts, selectedProjectAccountIds]
   );
 
   const filteredMedia = useMemo(() => {
@@ -991,6 +1008,71 @@ export default function DashboardClient({ data, platforms }) {
     });
   }, []);
 
+  const toggleMultipleAccount = useCallback((accountId) => {
+    setSelectedMultipleAccounts((prev) => {
+      // If selecting "all", clear all other selections
+      if (accountId === "all") {
+        return [];
+      }
+      
+      const isSelected = prev.includes(accountId);
+      if (isSelected) {
+        return prev.filter((id) => id !== accountId);
+      }
+      return [...prev, accountId];
+    });
+  }, []);
+
+  const toggleMultipleProject = useCallback((projectId) => {
+    setSelectedMultipleProjects((prev) => {
+      // If selecting "all", clear all other selections
+      if (projectId === "all") {
+        return [];
+      }
+      
+      const isSelected = prev.includes(projectId);
+      if (isSelected) {
+        return prev.filter((id) => id !== projectId);
+      }
+      return [...prev, projectId];
+    });
+  }, []);
+
+  // Clear project filters when accounts are selected
+  useEffect(() => {
+    if (selectedMultipleAccounts.length > 0) {
+      setSelectedMultipleProjects([]);
+      setSelectedProject("all");
+      setSelectedPlatform("all"); // Clear platform filter
+    }
+  }, [selectedMultipleAccounts]);
+
+  // Clear account filters when projects are selected
+  useEffect(() => {
+    if (selectedMultipleProjects.length > 0) {
+      setSelectedMultipleAccounts([]);
+      setSelectedAccount("all");
+      setSelectedPlatform("all"); // Clear platform filter
+    }
+  }, [selectedMultipleProjects]);
+
+  // Clear multi-select when single select changes
+  useEffect(() => {
+    if (selectedAccount !== "all") {
+      setSelectedMultipleAccounts([]);
+      setSelectedMultipleProjects([]);
+      setSelectedPlatform("all"); // Clear platform filter
+    }
+  }, [selectedAccount]);
+
+  useEffect(() => {
+    if (selectedProject !== "all") {
+      setSelectedMultipleAccounts([]);
+      setSelectedMultipleProjects([]);
+      setSelectedPlatform("all"); // Clear platform filter
+    }
+  }, [selectedProject]);
+
 
 
   function renderContent() {
@@ -1186,6 +1268,16 @@ export default function DashboardClient({ data, platforms }) {
                 )}
               </div>
             </section>
+
+            <section className="space-y-4">
+              <MultiAccountDailyTrend
+                accounts={filteredAccounts}
+                media={filteredMedia}
+                selectedAccounts={selectedMultipleAccounts.length > 0 ? selectedMultipleAccounts : 
+                  (selectedAccount === "all" ? filteredAccounts.map(acc => acc._id) : [selectedAccount])}
+                rangeDays={dateRanges[selectedRange]}
+              />
+            </section>
           </div>
         );
       case "accounts":
@@ -1227,15 +1319,21 @@ export default function DashboardClient({ data, platforms }) {
             <DailyViewsTimeline
               accounts={filteredAccounts}
               media={trackingMedia}
-              selectedAccounts={selectedAccount === "all" ? filteredAccounts.map(acc => acc._id) : [selectedAccount]}
+              selectedAccounts={selectedMultipleAccounts.length > 0 ? selectedMultipleAccounts : 
+                (selectedAccount === "all" ? filteredAccounts.map(acc => acc._id) : [selectedAccount])}
             />
             <MultiAccountDailyTrend
               accounts={filteredAccounts}
               media={trackingMedia}
-              selectedAccounts={selectedAccount === "all" ? filteredAccounts.map(acc => acc._id) : [selectedAccount]}
+              selectedAccounts={selectedMultipleAccounts.length > 0 ? selectedMultipleAccounts : 
+                (selectedAccount === "all" ? filteredAccounts.map(acc => acc._id) : [selectedAccount])}
               rangeDays={trackingDays}
             />
-            <AccountComparison accounts={filteredAccounts} selectedAccounts={selectedAccount === "all" ? filteredAccounts.map(acc => acc._id) : [selectedAccount]} />
+            <AccountComparison 
+              accounts={filteredAccounts} 
+              selectedAccounts={selectedMultipleAccounts.length > 0 ? selectedMultipleAccounts : 
+                (selectedAccount === "all" ? filteredAccounts.map(acc => acc._id) : [selectedAccount])} 
+            />
             <TimeAnalysis
               accounts={filteredAccounts}
               selectedAccount={selectedAccount}
@@ -1284,16 +1382,34 @@ export default function DashboardClient({ data, platforms }) {
     const selectedRangeLabel =
       rangeOptions.find((opt) => opt.value === selectedRange)?.label || "Last 30 days";
 
+    // Create multi-select labels
+    const multiAccountLabel = selectedMultipleAccounts.length === 0 
+      ? "Select accounts..." 
+      : selectedMultipleAccounts.length === 1 
+        ? accountOptions.find(opt => opt.value === selectedMultipleAccounts[0])?.label || "1 account"
+        : `${selectedMultipleAccounts.length} accounts`;
+    
+    const multiProjectLabel = selectedMultipleProjects.length === 0 
+      ? "Select projects..." 
+      : selectedMultipleProjects.length === 1 
+        ? projectOptions.find(opt => opt.value === selectedMultipleProjects[0])?.label || "1 project"
+        : `${selectedMultipleProjects.length} projects`;
+
     return [
       {
         name: "Accounts",
         placeholder: "Select account...",
         icon: <Users className="h-4 w-4" />,
         hasDropdown: true,
-        selectedValue: selectedAccountLabel,
+        allowMultiSelect: true,
+        selectedValue: multiAccountLabel,
         dropdownOptions: accountOptions.map((option) => ({
           label: option.label,
-          onClick: () => setSelectedAccount(option.value),
+          value: option.value,
+          isSelected: option.value === "all" 
+            ? selectedMultipleAccounts.length === 0 
+            : selectedMultipleAccounts.includes(option.value),
+          onMultiSelect: toggleMultipleAccount,
         })),
       },
       {
@@ -1301,15 +1417,15 @@ export default function DashboardClient({ data, platforms }) {
         placeholder: "Select project...",
         icon: <FolderKanban className="h-4 w-4" />,
         hasDropdown: true,
-        selectedValue: selectedProjectLabel,
+        allowMultiSelect: true,
+        selectedValue: multiProjectLabel,
         dropdownOptions: projectOptions.map((option) => ({
           label: option.label,
-          onClick: () => {
-            setSelectedProject(option.value);
-            if (option.value !== "all") {
-              setSelectedAccount("all");
-            }
-          },
+          value: option.value,
+          isSelected: option.value === "all" 
+            ? selectedMultipleProjects.length === 0 
+            : selectedMultipleProjects.includes(option.value),
+          onMultiSelect: toggleMultipleProject,
         })),
       },
       {
@@ -1348,7 +1464,7 @@ export default function DashboardClient({ data, platforms }) {
         })),
       },
     ];
-  }, [selectedAccount, selectedProject, selectedPlatform, selectedRange, accountOptions, projectOptions, platformFilters]);
+  }, [selectedAccount, selectedProject, selectedPlatform, selectedRange, accountOptions, projectOptions, platformFilters, selectedMultipleAccounts, selectedMultipleProjects, toggleMultipleAccount, toggleMultipleProject]);
 
 
   return (

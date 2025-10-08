@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronDown, Search, Plus, RefreshCw } from "lucide-react";
+import { ChevronDown, Search, Plus, RefreshCw, Check } from "lucide-react";
 import Image from "next/image";
 
 const FloatingNavbar = ({ navItems, className = "", activeNavItem, onAddAccount, onRefresh, isRefreshing, accountSearchTerm, setAccountSearchTerm, videoSearchTerm, setVideoSearchTerm }) => {
@@ -72,14 +72,23 @@ const FloatingNavbar = ({ navItems, className = "", activeNavItem, onAddAccount,
   };
 
   const handleOptionSelect = (option, index) => {
-    if (option.onClick) {
+    const item = navItems[index];
+    
+    // Handle multi-select for accounts and projects
+    if (item.allowMultiSelect && option.onMultiSelect) {
+      option.onMultiSelect(option.value);
+    } else if (option.onClick) {
       option.onClick();
     }
-    setActiveDropdown(null);
-    setSearchTerms(prev => ({
-      ...prev,
-      [index]: ""
-    }));
+    
+    // Don't close dropdown for multi-select items
+    if (!item.allowMultiSelect) {
+      setActiveDropdown(null);
+      setSearchTerms(prev => ({
+        ...prev,
+        [index]: ""
+      }));
+    }
   };
 
         return (
@@ -236,18 +245,34 @@ const FloatingNavbar = ({ navItems, className = "", activeNavItem, onAddAccount,
               {/* Options List */}
               <div className="max-h-48 overflow-y-auto">
                 {getFilteredOptions(item, index).length > 0 ? (
-                  getFilteredOptions(item, index).map((option, optionIndex) => (
-                    <button
-                      key={optionIndex}
-                      className="w-full text-left px-2 py-2 text-sm text-neutral-300 hover:text-white hover:bg-white/10 rounded-md transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOptionSelect(option, index);
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))
+                  getFilteredOptions(item, index).map((option, optionIndex) => {
+                    const isSelected = item.allowMultiSelect && option.isSelected;
+                    return (
+                      <button
+                        key={optionIndex}
+                        className={`w-full text-left px-2 py-2 text-sm rounded-md transition-colors flex items-center gap-2 ${
+                          isSelected 
+                            ? "text-white bg-sky-500/20" 
+                            : "text-neutral-300 hover:text-white hover:bg-white/10"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOptionSelect(option, index);
+                        }}
+                      >
+                        {item.allowMultiSelect && (
+                          <div className={`flex h-4 w-4 items-center justify-center rounded border ${
+                            isSelected 
+                              ? "border-sky-500 bg-sky-500" 
+                              : "border-neutral-500"
+                          }`}>
+                            {isSelected && <Check className="h-3 w-3 text-white" />}
+                          </div>
+                        )}
+                        <span className="flex-1">{option.label}</span>
+                      </button>
+                    );
+                  })
                 ) : (
                   <div className="px-2 py-2 text-sm text-neutral-500 text-center">
                     No results found
