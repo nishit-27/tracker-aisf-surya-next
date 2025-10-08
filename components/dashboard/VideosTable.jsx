@@ -10,6 +10,8 @@ import {
   Download,
   Eye,
   Gauge,
+  Heart,
+  MessageCircle,
   MoreHorizontal,
   PlayCircle,
   Search,
@@ -312,6 +314,26 @@ export default function VideosTable({
       className: "min-w-[100px] text-right",
     },
     {
+      id: "likes",
+      label: "Likes",
+      sortable: true,
+      sortKey: "likes",
+      align: "text-right",
+      icon: Heart,
+      srLabel: "Likes",
+      className: "min-w-[90px] text-right",
+    },
+    {
+      id: "comments",
+      label: "Comments",
+      sortable: true,
+      sortKey: "comments",
+      align: "text-right",
+      icon: MessageCircle,
+      srLabel: "Comments",
+      className: "min-w-[100px] text-right",
+    },
+    {
       id: "engagementRate",
       label: "Engagement",
       sortable: true,
@@ -513,6 +535,18 @@ export default function VideosTable({
                               return (
                                 <td key={column.id} className={`px-4 py-4 text-right text-sm font-semibold text-white${columnClassName}`}>
                                   {formatNumber(item.views)}
+                                </td>
+                              );
+                            case "likes":
+                              return (
+                                <td key={column.id} className={`px-4 py-4 text-right text-sm font-semibold text-white${columnClassName}`}>
+                                  {formatNumber(item.likes)}
+                                </td>
+                              );
+                            case "comments":
+                              return (
+                                <td key={column.id} className={`px-4 py-4 text-right text-sm font-semibold text-white${columnClassName}`}>
+                                  {formatNumber(item.comments)}
                                 </td>
                               );
                             case "engagementRate":
