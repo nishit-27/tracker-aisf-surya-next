@@ -48,6 +48,7 @@ import { PlatformImage } from "../../lib/utils/platformImages";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const dateRanges = {
+  "1d": 1,
   "7d": 7,
   "14d": 14,
   "30d": 30,
@@ -57,6 +58,7 @@ const dateRanges = {
 };
 
 const rangeOptions = [
+  { value: "1d", label: "Last 24 hours" },
   { value: "7d", label: "Last 7 days" },
   { value: "14d", label: "Last 14 days" },
   { value: "30d", label: "Last 30 days" },
@@ -784,33 +786,22 @@ export default function DashboardClient({ data, platforms }) {
   const trackingDays = dateRanges[trackingRange];
 
   const trackingMedia = useMemo(() => {
-    if (!selectedAccounts.length) {
-      return [];
-    }
+    const rangeDays = dateRanges[selectedRange];
+    const now = Date.now();
 
-    const selectedSet = new Set(selectedAccounts.map((id) => String(id)));
-
-    const scopedMedia = analyticsData.media.filter((item) =>
-      selectedSet.has(String(item.account))
-    );
-
-    if (trackingDays === null || trackingDays === undefined) {
-      return scopedMedia;
-    }
-
-    const threshold = Date.now() - trackingDays * DAY_MS;
-
-    return scopedMedia.filter((item) => {
-      if (!item?.publishedAt) {
-        return false;
-      }
-      const publishedAt = new Date(item.publishedAt).getTime();
-      if (Number.isNaN(publishedAt)) {
-        return false;
-      }
-      return publishedAt >= threshold;
-    });
-  }, [analyticsData.media, trackingDays, selectedAccounts]);
+    return analyticsData.media
+      .filter((item) => baseMediaMatches(item))
+      .filter((item) => {
+        if (!rangeDays || rangeDays === null) {
+          return true;
+        }
+        if (!item.publishedAt) {
+          return false;
+        }
+        const publishedAt = new Date(item.publishedAt).getTime();
+        return publishedAt >= now - rangeDays * DAY_MS;
+      });
+  }, [analyticsData.media, baseMediaMatches, selectedRange]);
 
   const statCards = useMemo(
     () => [
@@ -1233,70 +1224,18 @@ export default function DashboardClient({ data, platforms }) {
       case "tracking":
         return (
           <div className="space-y-6">
-            <div className="rounded-3xl border border-white/5 bg-[#101125] p-6">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-white">Choose Accounts</h2>
-                <p className="text-xs text-slate-400">
-                  Pick the accounts you want to track. Select multiple to compare them side-by-side.
-                </p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {analyticsData.accounts.map((account) => {
-                  const isSelected = selectedAccounts.includes(account._id);
-                  const Icon = getPlatformIcon(account.platform);
-                  return (
-                    <button
-                      key={account._id}
-                      type="button"
-                      onClick={() => toggleComparisonAccount(account._id)}
-                      className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${isSelected
-                          ? "border-sky-400/60 bg-sky-400/10 text-white"
-                          : "border-white/10 bg-white/5 text-slate-300 hover:border-white/20"
-                        }`}
-                    >
-                      <div>
-                        <p className="text-sm font-semibold">
-                          {accountDisplayLabel(account)}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {formatPlatformLabel(account.platform)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
-                        {isSelected ? <CheckCircle2 className="h-4 w-4 text-sky-300" /> : null}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-white/5 bg-[#101125] px-4 py-4">
-              <div>
-                <h3 className="text-sm font-semibold text-white">Tracking Range</h3>
-                <p className="text-xs text-slate-400">Applies to the views vs time and median views timelines.</p>
-              </div>
-              <AppDropdown
-                value={trackingRange}
-                options={rangeOptions}
-                onChange={setTrackingRange}
-                className="min-h-0 min-w-[160px] rounded-full"
-                panelClassName="mt-2 min-w-[200px]"
-                placeholder=""
-              />
-            </div>
             <DailyViewsTimeline
-              accounts={analyticsData.accounts}
+              accounts={filteredAccounts}
               media={trackingMedia}
-              selectedAccounts={selectedAccounts}
+              selectedAccounts={selectedAccount === "all" ? filteredAccounts.map(acc => acc._id) : [selectedAccount]}
             />
             <MultiAccountDailyTrend
-              accounts={analyticsData.accounts}
+              accounts={filteredAccounts}
               media={trackingMedia}
-              selectedAccounts={selectedAccounts}
+              selectedAccounts={selectedAccount === "all" ? filteredAccounts.map(acc => acc._id) : [selectedAccount]}
               rangeDays={trackingDays}
             />
-            <AccountComparison accounts={analyticsData.accounts} selectedAccounts={selectedAccounts} />
+            <AccountComparison accounts={filteredAccounts} selectedAccounts={selectedAccount === "all" ? filteredAccounts.map(acc => acc._id) : [selectedAccount]} />
             <TimeAnalysis
               accounts={filteredAccounts}
               selectedAccount={selectedAccount}
@@ -1411,6 +1350,7 @@ export default function DashboardClient({ data, platforms }) {
     ];
   }, [selectedAccount, selectedProject, selectedPlatform, selectedRange, accountOptions, projectOptions, platformFilters]);
 
+
   return (
     <div className="flex min-h-screen max-w-screen w-screen bg-[#05060f] text-white overflow-hidden">
       <aside className="hidden w-[80px] flex-col border-r border-white/5 bg-[#070714] px-3 py-6 lg:flex fixed left-0 top-0 h-screen z-40">
@@ -1453,19 +1393,17 @@ export default function DashboardClient({ data, platforms }) {
       <div className="flex flex-1 overflow-auto flex-col min-w-0 ml-[80px]">
         <main ref={mainScrollRef} className="flex-1 overflow-y-auto bg-[#05060f]">
           <div className="px-4 py-6 sm:px-6 lg:px-8">
-            {activeTab !== "tracking" && (
-              <FloatingNavbar 
-                navItems={floatingNavItems} 
-                activeNavItem={activeNavItem}
-                onAddAccount={() => setIsModalOpen(true)}
-                onRefresh={refreshAnalytics}
-                isRefreshing={isRefreshing}
-                accountSearchTerm={accountSearchTerm}
-                setAccountSearchTerm={setAccountSearchTerm}
-                videoSearchTerm={videoSearchTerm}
-                setVideoSearchTerm={setVideoSearchTerm}
-              />
-            )}
+            <FloatingNavbar 
+              navItems={floatingNavItems} 
+              activeNavItem={activeNavItem}
+              onAddAccount={() => setIsModalOpen(true)}
+              onRefresh={refreshAnalytics}
+              isRefreshing={isRefreshing}
+              accountSearchTerm={accountSearchTerm}
+              setAccountSearchTerm={setAccountSearchTerm}
+              videoSearchTerm={videoSearchTerm}
+              setVideoSearchTerm={setVideoSearchTerm}
+            />
             {refreshError ? (
               <div className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
                 {refreshError}

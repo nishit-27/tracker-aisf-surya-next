@@ -1,0 +1,358 @@
+/* Ant Design DatePicker Dark Theme Customization */
+.ant-picker {
+  background: transparent !important;
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  border-radius: 8px !important;
+  color: #e2e8f0 !important;
+  height: 40px !important;
+}
+
+.ant-picker:hover {
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+.ant-picker-focused {
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+}
+
+.ant-picker-input > input {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+  font-size: 14px !important;
+}
+
+.ant-picker-input > input::placeholder {
+  color: rgba(148, 163, 184, 0.6) !important;
+}
+
+.ant-picker-suffix {
+  color: rgba(148, 163, 184, 0.6) !important;
+}
+
+.ant-picker-clear {
+  color: rgba(148, 163, 184, 0.6) !important;
+}
+
+/* DatePicker Panel */
+.ant-picker-dropdown {
+  background: rgba(15, 23, 42, 0.95) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(148, 163, 184, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+}
+
+.ant-picker-panel {
+  background: transparent !important;
+  border: none !important;
+}
+
+.ant-picker-header {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1) !important;
+  color: #e2e8f0 !important;
+}
+
+.ant-picker-header button {
+  color: #e2e8f0 !important;
+  background: rgba(148, 163, 184, 0.1) !important;
+  border-radius: 6px !important;
+  border: none !important;
+}
+
+.ant-picker-header button:hover {
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: #f8fafc !important;
+}
+
+.ant-picker-header-view {
+  color: #f8fafc !important;
+  font-weight: 600 !important;
+}
+
+.ant-picker-weekday {
+  color: rgba(148, 163, 184, 0.9) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+}
+
+.ant-picker-cell {
+  color: #e2e8f0 !important;
+}
+
+.ant-picker-cell:hover .ant-picker-cell-inner {
+  background: rgba(99, 102, 241, 0.15) !important;
+  color: #f8fafc !important;
+}
+
+.ant-picker-cell-in-range .ant-picker-cell-inner {
+  background: rgba(31, 41, 55, 0.6) !important;
+  color: #ffffff !important;
+}
+
+.ant-picker-cell-range-start .ant-picker-cell-inner,
+.ant-picker-cell-range-end .ant-picker-cell-inner {
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  border-radius: 20px !important;
+}
+
+.ant-picker-cell-range-start .ant-picker-cell-inner {
+  border-top-left-radius: 20px !important;
+  border-bottom-left-radius: 20px !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.ant-picker-cell-range-end .ant-picker-cell-inner {
+  border-top-right-radius: 20px !important;
+  border-bottom-right-radius: 20px !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.ant-picker-cell-today .ant-picker-cell-inner {
+  background: rgba(34, 197, 94, 0.2) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
+  color: #22c55e !important;
+  font-weight: 600 !important;
+}
+
+.ant-picker-cell-disabled {
+  color: rgba(148, 163, 184, 0.3) !important;
+}
+
+.ant-picker-cell-disabled .ant-picker-cell-inner {
+  background: rgba(15, 23, 42, 0.3) !important;
+}
+
+/* Range Picker specific styles */
+.ant-picker-range {
+  background: transparent !important;
+}
+
+.ant-picker-range .ant-picker-input {
+  background: transparent !important;
+}
+
+.ant-picker-range .ant-picker-input > input {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+}
+
+.ant-picker-range-separator {
+  color: rgba(148, 163, 184, 0.6) !important;
+}
+
+/* Preset ranges styling */
+.ant-picker-presets {
+  background: rgba(15, 23, 42, 0.8) !important;
+  border-right: 1px solid rgba(148, 163, 184, 0.1) !important;
+}
+
+.ant-picker-presets ul {
+  background: transparent !important;
+}
+
+.ant-picker-presets li {
+  color: #e2e8f0 !important;
+  background: transparent !important;
+  border-radius: 6px !important;
+  margin: 2px 0 !important;
+}
+
+.ant-picker-presets li:hover {
+  background: rgba(99, 102, 241, 0.15) !important;
+  color: #f8fafc !important;
+}
+
+.ant-picker-presets li.ant-picker-presets-active {
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: #f8fafc !important;
+  font-weight: 600 !important;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+  .ant-picker {
+    height: 36px !important;
+    font-size: 13px !important;
+  }
+  
+  .ant-picker-input > input {
+    font-size: 13px !important;
+  }
+  
+  .ant-picker-cell-range-start .ant-picker-cell-inner,
+  .ant-picker-cell-range-end .ant-picker-cell-inner {
+    border-radius: 15px !important;
+  }
+  
+  .ant-picker-cell-range-start .ant-picker-cell-inner {
+    border-top-left-radius: 15px !important;
+    border-bottom-left-radius: 15px !important;
+  }
+  
+.ant-picker-cell-range-end .ant-picker-cell-inner {
+    border-top-right-radius: 15px !important;
+    border-bottom-right-radius: 15px !important;
+  }
+}
+
+/* Floating navbar range picker */
+.floating-navbar__picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(11, 17, 37, 0.6);
+  border-radius: 14px;
+  padding: 0.6rem 0.85rem;
+  transition: border 0.2s ease, background 0.2s ease;
+}
+
+.floating-navbar__picker-wrapper:hover {
+  border-color: rgba(125, 211, 252, 0.45);
+  background: rgba(11, 17, 37, 0.75);
+}
+
+.floating-navbar__picker-wrapper--active {
+  border-color: rgba(56, 189, 248, 0.6);
+  background: rgba(12, 17, 35, 0.85);
+}
+
+.floating-navbar__picker-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.floating-navbar__picker-input {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.floating-navbar__picker-placeholder {
+  position: absolute;
+  inset: 0.2rem 0 auto 0.75rem;
+  color: rgba(148, 163, 184, 0.7);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.floating-navbar__range-picker.ant-picker {
+  width: 100%;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+}
+
+.floating-navbar__range-picker.ant-picker-focused {
+  box-shadow: none;
+}
+
+.floating-navbar__range-picker .ant-picker-input {
+  height: auto;
+}
+
+.floating-navbar__range-picker .ant-picker-input > input {
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.floating-navbar__range-picker .ant-picker-separator {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+.floating-navbar__range-picker .ant-picker-clear {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+.floating-navbar__range-picker .ant-picker-suffix {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+.floating-navbar__range-popup {
+  background: transparent;
+}
+
+.floating-navbar__range-panel {
+  display: flex;
+  background: rgba(8, 11, 24, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.floating-navbar__preset-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: 16px;
+  gap: 0.5rem;
+  background: rgba(12, 19, 36, 0.92);
+  border-right: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.floating-navbar__preset-button {
+  border: none;
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.floating-navbar__preset-button:hover {
+  background: rgba(148, 163, 184, 0.16);
+  color: #f8fafc;
+}
+
+.floating-navbar__preset-button--active {
+  background: #ffffff;
+  color: #020617;
+}
+
+.floating-navbar__calendar {
+  padding: 16px 18px 14px;
+  background: rgba(11, 16, 31, 0.92);
+}
+
+.floating-navbar__helper {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.55);
+  color: rgba(148, 163, 184, 0.85);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.floating-navbar__helper p {
+  margin: 0;
+}
+
+.floating-navbar__range-separator {
+  color: rgba(148, 163, 184, 0.65);
+  font-weight: 500;
+  padding: 0 4px;
+}
+
+@media (max-width: 640px) {
+  .floating-navbar__picker-input {
+    min-width: 180px;
+  }
+
+  .floating-navbar__preset-list {
+    min-width: 150px;
+  }
+}
