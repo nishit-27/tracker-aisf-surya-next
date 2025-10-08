@@ -65,9 +65,11 @@ export default function AccountComparison({ accounts, selectedAccounts = [] }) {
       if (!account) return null;
       
       const stats = account.stats || {};
+      const accountName = account.displayName || account.username || account.accountId;
       return {
-        name: account.displayName || account.username || account.accountId,
+        name: accountName,
         platform: account.platform,
+        uniqueKey: `${accountName}-${account.platform}`,
         followers: stats.followers || 0,
         totalViews: stats.totalViews || 0,
         totalLikes: stats.totalLikes || 0,
@@ -88,6 +90,8 @@ export default function AccountComparison({ accounts, selectedAccounts = [] }) {
       const account = accounts.find(acc => acc._id === accountId);
       if (!account?.history) return;
       
+      console.log('Processing account:', account.displayName || account.username, 'Platform:', account.platform);
+      
       account.history.forEach(snapshot => {
         const date = new Date(snapshot.date).toISOString().split("T")[0];
         if (!dateMap.has(date)) {
@@ -96,15 +100,18 @@ export default function AccountComparison({ accounts, selectedAccounts = [] }) {
         
         const entry = dateMap.get(date);
         const accountName = account.displayName || account.username || account.accountId;
+        const uniqueKey = `${accountName}-${account.platform}`;
         
-        if (!entry[accountName]) {
-          entry[accountName] = 0;
+        if (!entry[uniqueKey]) {
+          entry[uniqueKey] = 0;
         }
-        entry[accountName] += snapshot[selectedMetric] || 0;
+        entry[uniqueKey] += snapshot[selectedMetric] || 0;
       });
     });
     
-    return Array.from(dateMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+    const result = Array.from(dateMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+    console.log('AccountComparison - trendData result:', result);
+    return result;
   }, [accounts, selectedAccounts, selectedMetric]);
 
   if (selectedAccounts.length < 2) {
@@ -161,12 +168,16 @@ export default function AccountComparison({ accounts, selectedAccounts = [] }) {
             <ChartComponent data={comparisonData}>
               <CartesianGrid stroke="#1f2937" strokeDasharray="4 4" />
               <XAxis 
-                dataKey="name" 
+                dataKey="uniqueKey" 
                 stroke="#94a3b8" 
                 fontSize={12}
                 angle={-45}
                 textAnchor="end"
                 height={60}
+                tickFormatter={(value) => {
+                  const [name, platform] = value.split('-');
+                  return `${name} (${platform})`;
+                }}
               />
               <YAxis 
                 stroke="#94a3b8" 
@@ -184,6 +195,10 @@ export default function AccountComparison({ accounts, selectedAccounts = [] }) {
                   borderRadius: "8px"
                 }}
                 labelStyle={{ color: "#fff" }}
+                labelFormatter={(value) => {
+                  const [name, platform] = value.split('-');
+                  return `${name} (${platform})`;
+                }}
                 formatter={(value) => [
                   selectedMetric === "engagementRate" 
                     ? formatPercent(value) 
@@ -261,9 +276,9 @@ export default function AccountComparison({ accounts, selectedAccounts = [] }) {
                 />
                 {comparisonData.map((account, index) => (
                   <Line
-                    key={account.name}
+                    key={`${account.name}-${account.platform}-${index}`}
                     type="monotone"
-                    dataKey={account.name}
+                    dataKey={account.uniqueKey}
                     stroke={comparisonMetrics[index % comparisonMetrics.length].color}
                     strokeWidth={2}
                     dot={{ r: 3 }}
@@ -294,7 +309,7 @@ export default function AccountComparison({ accounts, selectedAccounts = [] }) {
             </thead>
             <tbody>
               {comparisonData.map((account, index) => (
-                <tr key={account.name} className="border-b border-slate-800/50">
+                <tr key={`${account.name}-${account.platform}-${index}`} className="border-b border-slate-800/50">
                   <td className="py-3">
                     <div>
                       <div className="font-medium text-white">{account.name}</div>
