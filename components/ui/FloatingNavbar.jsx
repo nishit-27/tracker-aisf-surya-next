@@ -297,7 +297,13 @@ const FloatingNavbar = ({ navItems, className = "", activeNavItem, onAddAccount,
               </button>
               <button
                 type="button"
-                onClick={onRefresh}
+                onClick={() => {
+                  if (onRefresh && typeof onRefresh === "function") {
+                    onRefresh().catch((error) => {
+                      console.error("Refresh button error:", error);
+                    });
+                  }
+                }}
                 disabled={isRefreshing}
                 className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
               >

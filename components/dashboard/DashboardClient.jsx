@@ -954,6 +954,7 @@ export default function DashboardClient({ data, platforms }) {
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({}),
       });
 
       const refreshPayload = await refreshResponse.json().catch(() => ({}));
@@ -971,7 +972,7 @@ export default function DashboardClient({ data, platforms }) {
       await loadAnalyticsOverview();
     } catch (error) {
       setRefreshError(error.message || "Failed to refresh analytics.");
-      throw error;
+      console.error("Refresh error:", error);
     } finally {
       setIsRefreshing(false);
     }
