@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -44,6 +45,7 @@ import DailyViewsTimeline from "./DailyViewsTimeline";
 import FloatingNavbar from "../ui/FloatingNavbar";
 import ProjectsManager from "./ProjectsManager";
 import { PlatformImage } from "../../lib/utils/platformImages";
+import { normaliseRunableFilter } from "../../lib/utils/runableFilter";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -82,6 +84,12 @@ const metricDisplayOptions = [
   { value: "comments", label: "Comments" },
   { value: "shares", label: "Shares" },
   { value: "followers", label: "Followers" },
+];
+
+const runableFilterOptions = [
+  { value: "all", label: "All videos" },
+  { value: "runable", label: "Runable" },
+  { value: "non-runable", label: "Non-Runable" },
 ];
 
 const sidebarNavigation = [
@@ -314,7 +322,10 @@ function StatCard({ label, value, delta, icon: Icon, accent, description }) {
 }
 
 
-export default function DashboardClient({ data, platforms }) {
+export default function DashboardClient({ data, platforms, initialRunableFilter = "all" }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [analyticsData, setAnalyticsData] = useState(data);
   const [selectedPlatform, setSelectedPlatform] = useState("all");
   const [selectedAccount, setSelectedAccount] = useState("all");
@@ -338,11 +349,42 @@ export default function DashboardClient({ data, platforms }) {
   const mainScrollRef = useRef(null);
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
   const [videoSearchTerm, setVideoSearchTerm] = useState("");
+  const [runableFilter, setRunableFilter] = useState(() => normaliseRunableFilter(initialRunableFilter, "all"));
 
   const platformFilters = useMemo(() => {
     const unique = Array.from(new Set([...(platforms ?? [])]));
     return ["all", ...unique];
   }, [platforms]);
+
+  useEffect(() => {
+    if (!searchParams) {
+      return;
+    }
+    const paramValue = normaliseRunableFilter(searchParams.get("runable"), "all");
+    setRunableFilter((current) => (current === paramValue ? current : paramValue));
+  }, [searchParams]);
+
+  const handleRunableFilterChange = useCallback(
+    (nextValue) => {
+      const resolved = normaliseRunableFilter(nextValue, "all");
+      setRunableFilter((current) => (current === resolved ? current : resolved));
+
+      if (!router || !pathname || !searchParams) {
+        return;
+      }
+
+      const params = new URLSearchParams(searchParams.toString());
+      if (resolved === "all") {
+        params.delete("runable");
+      } else {
+        params.set("runable", resolved);
+      }
+
+      const queryString = params.toString();
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
 
   const refreshProjects = useCallback(async () => {
     setProjectsLoading(true);
@@ -591,6 +633,18 @@ export default function DashboardClient({ data, platforms }) {
 
   const baseMediaMatches = useCallback(
     (item) => {
+      if (!item) {
+        return false;
+      }
+
+      if (runableFilter === "runable" && item.runable !== true) {
+        return false;
+      }
+
+      if (runableFilter === "non-runable" && item.runable === true) {
+        return false;
+      }
+
       if (selectedPlatform !== "all" && item.platform !== selectedPlatform) {
         return false;
       }
@@ -609,7 +663,7 @@ export default function DashboardClient({ data, platforms }) {
 
       return true;
     },
-    [selectedPlatform, selectedAccount, selectedMultipleAccounts, selectedProjectAccountIds]
+    [selectedPlatform, selectedAccount, selectedMultipleAccounts, selectedProjectAccountIds, runableFilter]
   );
 
   const filteredMedia = useMemo(() => {
@@ -1025,6 +1079,45 @@ export default function DashboardClient({ data, platforms }) {
     [selectedAccount, loadAnalyticsOverview]
   );
 
+  const handleRunableUpdate = useCallback(async (mediaId, runableValue) => {
+    if (!mediaId) {
+      return { success: false, error: "Media identifier is required." };
+    }
+
+    try {
+      const response = await fetch(`/api/media/${mediaId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runable: runableValue }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok || payload?.success === false) {
+        throw new Error(payload?.error || "Failed to update video.");
+      }
+
+      if (payload?.media?._id) {
+        setAnalyticsData((current) => {
+          if (!current?.media) {
+            return current;
+          }
+
+          const nextMedia = current.media.map((item) =>
+            item._id === payload.media._id ? { ...item, ...payload.media } : item
+          );
+
+          return { ...current, media: nextMedia };
+        });
+      }
+
+      return { success: true, media: payload?.media };
+    } catch (error) {
+      console.error("[dashboard:runableUpdate]", error);
+      return { success: false, error: error.message || "Failed to update video." };
+    }
+  }, []);
+
   const toggleComparisonAccount = useCallback((accountId) => {
     setSelectedAccounts((prev) => {
       const isSelected = prev.includes(accountId);
@@ -1332,6 +1425,7 @@ export default function DashboardClient({ data, platforms }) {
             onTrackVideo={() => setIsModalOpen(true)}
             platformFilters={platformFilters}
             searchTerm={videoSearchTerm}
+            onRunableChange={handleRunableUpdate}
           />
         );
       case "tracking":
@@ -1402,6 +1496,8 @@ export default function DashboardClient({ data, platforms }) {
       projectOptions.find((opt) => opt.value === selectedProject)?.label || "All projects";
     const selectedRangeLabel =
       rangeOptions.find((opt) => opt.value === selectedRange)?.label || "Last 30 days";
+    const selectedRunableLabel =
+      runableFilterOptions.find((opt) => opt.value === runableFilter)?.label || "All videos";
 
     // Create multi-select labels
     const multiAccountLabel = selectedMultipleAccounts.length === 0 
@@ -1474,6 +1570,17 @@ export default function DashboardClient({ data, platforms }) {
         })
       },
       {
+        name: "Runable Filter",
+        placeholder: "Select video filter...",
+        icon: <Sparkles className="h-4 w-4" />,
+        hasDropdown: true,
+        selectedValue: selectedRunableLabel,
+        dropdownOptions: runableFilterOptions.map((option) => ({
+          label: option.label,
+          onClick: () => handleRunableFilterChange(option.value),
+        })),
+      },
+      {
         name: "Date Range",
         placeholder: "Select date range...",
         icon: <CalendarRange className="h-4 w-4" />,
@@ -1485,7 +1592,21 @@ export default function DashboardClient({ data, platforms }) {
         })),
       },
     ];
-  }, [selectedAccount, selectedProject, selectedPlatform, selectedRange, accountOptions, projectOptions, platformFilters, selectedMultipleAccounts, selectedMultipleProjects, toggleMultipleAccount, toggleMultipleProject]);
+  }, [
+    selectedAccount,
+    selectedProject,
+    selectedPlatform,
+    selectedRange,
+    accountOptions,
+    projectOptions,
+    platformFilters,
+    selectedMultipleAccounts,
+    selectedMultipleProjects,
+    toggleMultipleAccount,
+    toggleMultipleProject,
+    runableFilter,
+    handleRunableFilterChange,
+  ]);
 
 
   return (

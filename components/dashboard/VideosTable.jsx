@@ -148,10 +148,31 @@ export default function VideosTable({
   onTrackVideo,
   platformFilters = ["all"],
   searchTerm = "",
+  onRunableChange,
 }) {
   const [sortKey, setSortKey] = useState("views");
   const [sortDirection, setSortDirection] = useState("desc");
   const [activeMenu, setActiveMenu] = useState(null);
+  const [runableUpdatingId, setRunableUpdatingId] = useState(null);
+
+  const handleRunableUpdate = useCallback(
+    async (mediaId, nextValue = true) => {
+      if (!mediaId || typeof onRunableChange !== "function") {
+        return;
+      }
+
+      setRunableUpdatingId(mediaId);
+
+      try {
+        await onRunableChange(mediaId, nextValue);
+      } catch (error) {
+        console.error("[videosTable] Failed to update runable flag", error);
+      } finally {
+        setRunableUpdatingId((current) => (current === mediaId ? null : current));
+      }
+    },
+    [onRunableChange]
+  );
 
   const accountMap = useMemo(() => {
     const map = new Map();
@@ -425,8 +446,11 @@ export default function VideosTable({
                 </tr>
               ) : (
                 filteredRows.map((item, index) => {
-                  const accountId = item.raw?._id || `${item.platform}-${index}`;
-                  const isActiveMenu = activeMenu === accountId;
+                  const mediaId = item.raw?._id || null;
+                  const rowId = mediaId || `${item.platform}-${index}`;
+                  const isActiveMenu = activeMenu === rowId;
+                  const isRunable = item.raw?.runable === true;
+                  const isUpdating = runableUpdatingId === mediaId;
 
                   const velocityTone = (() => {
                     if (!Number.isFinite(item.velocity)) {
@@ -446,7 +470,7 @@ export default function VideosTable({
                     : "—";
 
                   return (
-                    <Fragment key={accountId}>
+                    <Fragment key={rowId}>
                       <tr className="group transition hover:bg-white/5">
                         {columns.map((column) => {
                           const columnClassName = column.className ? ` ${column.className}` : "";
@@ -490,6 +514,11 @@ export default function VideosTable({
                                       >
                                         {item.title.length > 70 ? `${item.title.substring(0, 70)}…` : item.title}
                                       </p>
+                                      {item.raw?.runable ? (
+                                        <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
+                                          Runable
+                                        </span>
+                                      ) : null}
                                       <p className="flex items-center gap-1 text-xs text-slate-500" title={item.accountName}>
                                         <PlayCircle className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
                                         <span className="truncate">{item.accountName}</span>
@@ -575,7 +604,7 @@ export default function VideosTable({
                                   <div className="relative inline-flex">
                                     <button
                                       type="button"
-                                      onClick={() => setActiveMenu((current) => (current === accountId ? null : accountId))}
+                                      onClick={() => setActiveMenu((current) => (current === rowId ? null : rowId))}
                                       className="rounded-full border border-white/10 p-2 text-slate-400 transition hover:border-white/30 hover:text-white"
                                     >
                                       <MoreHorizontal className="h-4 w-4" />
@@ -605,6 +634,44 @@ export default function VideosTable({
                                           className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-200 hover:bg-white/5"
                                         >
                                           Copy link
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={!mediaId || isRunable || isUpdating}
+                                          onClick={() => {
+                                            if (!mediaId || isRunable) {
+                                              setActiveMenu(null);
+                                              return;
+                                            }
+                                            setActiveMenu(null);
+                                            handleRunableUpdate(mediaId, true);
+                                          }}
+                                          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold transition ${
+                                            isRunable
+                                              ? "cursor-default text-emerald-300"
+                                              : "text-slate-200 hover:bg-white/5"
+                                          } ${isUpdating ? "opacity-70" : ""}`}
+                                        >
+                                          {isUpdating && !isRunable ? "Updating…" : "Add to Runable"}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={!mediaId || !isRunable || isUpdating}
+                                          onClick={() => {
+                                            if (!mediaId || !isRunable) {
+                                              setActiveMenu(null);
+                                              return;
+                                            }
+                                            setActiveMenu(null);
+                                            handleRunableUpdate(mediaId, false);
+                                          }}
+                                          className={`mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold transition ${
+                                            isRunable
+                                              ? "text-rose-200 hover:bg-rose-500/10"
+                                              : "cursor-default text-slate-500"
+                                          } ${isUpdating ? "opacity-70" : ""}`}
+                                        >
+                                          {isUpdating && isRunable ? "Updating…" : "Remove from Runable"}
                                         </button>
                                       </div>
                                     ) : null}

@@ -1,6 +1,7 @@
 import DashboardClient from "@/components/dashboard/DashboardClient";
 import { getOverviewAnalytics } from "@/lib/queries";
 import { supportedPlatforms } from "@/lib/platforms";
+import { normaliseRunableFilter } from "@/lib/utils/runableFilter";
 
 function normaliseMetadata(metadata) {
   if (!metadata) {
@@ -24,8 +25,12 @@ function normaliseMetadata(metadata) {
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home({ searchParams } = {}) {
+  const resolvedSearchParams =
+    typeof searchParams?.then === "function" ? await searchParams : searchParams || {};
+
   const data = await getOverviewAnalytics();
+  const initialRunableFilter = normaliseRunableFilter(resolvedSearchParams?.runable, "all");
 
   // Ensure plain JSON serialisable data for the client boundary.
   const serialised = {
@@ -55,5 +60,11 @@ export default async function Home() {
     })),
   };
 
-  return <DashboardClient data={serialised} platforms={supportedPlatforms} />;
+  return (
+    <DashboardClient
+      data={serialised}
+      platforms={supportedPlatforms}
+      initialRunableFilter={initialRunableFilter}
+    />
+  );
 }

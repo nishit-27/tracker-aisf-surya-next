@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import MediaItem from "@/lib/models/MediaItem";
 import { supportedPlatforms } from "@/lib/platforms";
+import { applyRunableFilterToQuery } from "@/lib/utils/runableFilter";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export async function GET(request) {
     const endDate = searchParams.get("endDate");
     const sortBy = searchParams.get("sortBy") ?? "publishedAt";
     const sortOrder = searchParams.get("sortOrder") === "asc" ? 1 : -1;
+    const runableFilter = searchParams.get("runable");
 
     const query = {};
 
@@ -37,6 +39,8 @@ export async function GET(request) {
         query.publishedAt.$lte = new Date(endDate);
       }
     }
+
+    applyRunableFilterToQuery(query, runableFilter);
 
     const media = await MediaItem.find(query)
       .sort({ [sortBy]: sortOrder })
