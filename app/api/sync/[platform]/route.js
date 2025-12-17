@@ -32,7 +32,7 @@ export async function POST(request, { params }) {
       media: providerData.media,
     });
 
-    const mediaItems = await MediaItem.find({ account: platformAccount._id })
+    const mediaItems = await MediaItem.find({ account: platformAccount._id }, null, { allowDiskUse: true })
       .sort({ publishedAt: -1 })
       .lean();
 
@@ -78,7 +78,7 @@ export async function GET(_, { params }) {
       );
     }
 
-    const media = await MediaItem.find({ account: account._id })
+    const media = await MediaItem.find({ account: account._id }, null, { allowDiskUse: true })
       .sort({ publishedAt: -1 })
       .lean();
 

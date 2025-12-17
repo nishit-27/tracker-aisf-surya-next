@@ -42,7 +42,7 @@ export async function GET(request) {
 
     applyRunableFilterToQuery(query, runableFilter);
 
-    const media = await MediaItem.find(query)
+    const media = await MediaItem.find(query, null, { allowDiskUse: true })
       .sort({ [sortBy]: sortOrder })
       .lean();
 
